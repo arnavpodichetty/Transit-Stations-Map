@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Transit Stations Map</title>
+  <meta name="viewport" content="initial-scale=1.0">
+  <style>
+    body{margin:0;font-family:Arial,Helvetica,sans-serif}
+    #controls{margin:10px 20px}
+    #map{height:90vh;width:100vw}
+    select,input[type="text"]{margin-right:8px;padding:4px}
+    /* Legend */
+    #legend{background:#fff;padding:8px 10px;border-radius:6px;
+            box-shadow:0 1px 4px rgba(0,0,0,.3);font-size:14px}
+    #legend div{margin-bottom:4px}
+  </style>
+</head>
+<body>
+
+<h3 style="margin:10px 20px 0">Transit Stations Map</h3>
+
+<!-- ───────────── Filter bar ───────────── -->
+<div id="controls">
+  <label>State:
+    <select id="stateFilter"><option value="">All</option></select>
+  </label>
+  <label>Mode:
+    <select id="modeFilter">
+      <option value="">All</option>
+      <option value="bus">Bus</option>
+      <option value="air">Air</option>
+      <option value="rail">Rail</option>
+      <option value="ferry">Ferry</option>
+      <option value="bike">Bike</option>
+    </select>
+  </label>
+  <label>Search:
+    <input type="text" id="nameSearch" placeholder="Name contains…">
+  </label>
+</div>
+
+<!-- The Map -->
+<div id="map"></div>
+
+<!-- Legend -->
+<div id="legend">
+  <b>Legend</b><br>
+  <div><img src="http://maps.google.com/mapfiles/ms/icons/red-dot.png"> Bus</div>
+  <div><img src="http://maps.google.com/mapfiles/ms/icons/blue-dot.png"> Air</div>
+  <div><img src="http://maps.google.com/mapfiles/ms/icons/green-dot.png"> Rail</div>
+  <div><img src="http://maps.google.com/mapfiles/ms/icons/yellow-dot.png"> Ferry</div>
+  <div><img src="http://maps.google.com/mapfiles/ms/icons/purple-dot.png"> Bike</div>
+</div>
+
+<script>
+let map, markers=[], stationData=[];
+
+/* ───── Helpers ───── */
+
+const typeMap = {1:"Bus",2:"Rail",5:"Ferry",10:"Air"};
+
+function primaryMode(st){
+  if(+st.mode_bus  ) return "bus";
+  if(+st.mode_air  ) return "air";
+  if(+st.mode_rail ) return "rail";
+  if(+st.mode_ferry) return "ferry";
+  if(+st.mode_bike ) return "bike";
+  return (typeMap[+st.mode_type]||"unknown").toLowerCase();
+}
+
+function modeIcon(m){
+  const colour = {bus:"red",air:"blue",rail:"green",ferry:"yellow",bike:"purple"}[m]||"orange";
+  return `http://maps.google.com/mapfiles/ms/icons/${colour}-dot.png`;
+}
+
+function fmtAddress(st){
+  return [st.address, st.city, st.state, st.zipcode].filter(Boolean).join(", ");
+}
+
+function popupHTML(st){
+  const modes = [
+    +st.mode_bus   ? "🚌 Bus"   : null,
+    +st.mode_air   ? "✈️ Air"   : null,
+    +st.mode_rail  ? "🚆 Rail"  : null,
+    +st.mode_ferry ? "⛴️ Ferry" : null,
+    +st.mode_bike  ? "🚲 Bike"  : null
+  ].filter(Boolean).join(" | ") || (typeMap[+st.mode_type]||"");
+
+  // Ensure full URL
+  const url = st.website?.startsWith("http") ? st.website : `https://${st.website}`;
+
+  return `
+    <b>${st.fac_name || st.station_id}</b><br>
+    <b>ID:</b> ${st.station_id}<br>
+    <b>Address:</b> ${fmtAddress(st)}<br>
+    <b>Modes:</b> ${modes}<br>
+    ${st.website ? `<a href="${url}" target="_blank" rel="noopener noreferrer">Website</a><br>` : ""}
+    ${st.notes ? `<i>${st.notes}</i><br>` : ""}
+  `;
+}
+
+/* ───── Map rendering ───── */
+
+function clearMarkers(){ markers.forEach(m=>m.setMap(null)); markers=[] }
+
+function drawMarkers(arr){
+  clearMarkers();
+  arr.forEach(st=>{
+    if(!st.latitude || !st.longitude) return;
+    const mode = primaryMode(st);
+    const m = new google.maps.Marker({
+      position:{lat:+st.latitude,lng:+st.longitude},
+      map, icon:modeIcon(mode),
+      title:`${st.fac_name||st.station_id} (${mode})`
+    });
+    const iw = new google.maps.InfoWindow({content:popupHTML(st)});
+    m.addListener("click", ()=>iw.open(map,m));
+    markers.push(m);
+  });
+}
+
+/* ───── Filtering ───── */
+
+function filtered(){
+  const state = document.getElementById("stateFilter").value;
+  const mode  = document.getElementById("modeFilter").value;
+  const name  = document.getElementById("nameSearch").value.toLowerCase();
+  return stationData.filter(st=>{
+    if(state && st.state!==state) return false;
+    if(mode  && primaryMode(st)!==mode) return false;
+    if(name  && !(st.fac_name||"").toLowerCase().includes(name)) return false;
+    return true;
+  });
+}
+
+function update(){ drawMarkers(filtered()); }
+
+/* ───── Init ───── */
+
+fetch("data/data.json")
+ .then(r=>r.json())
+ .then(data=>{
+   stationData=data;
+
+   map=new google.maps.Map(document.getElementById("map"),{
+     center:{lat:39.8283,lng:-98.5795}, zoom:4
+   });
+   map.controls[google.maps.ControlPosition.RIGHT_BOTTOM]
+     .push(document.getElementById("legend"));
+
+   // populate state dropdown
+   [...new Set(stationData.map(s=>s.state))].filter(Boolean).sort()
+     .forEach(s=>{
+        const opt=document.createElement("option");
+        opt.value=opt.text=s;
+        document.getElementById("stateFilter").appendChild(opt);
+     });
+
+   // event hooks
+   document.getElementById("stateFilter").onchange=update;
+   document.getElementById("modeFilter").onchange =update;
+   document.getElementById("nameSearch").oninput =update;
+
+   update();
+ });
+
+</script>
+<script async
+  src="/api/maps">
+</script>
+</body>
+</html>
