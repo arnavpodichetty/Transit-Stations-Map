@@ -1,14 +1,16 @@
-import pandas as pd
 import os
+from pathlib import Path
+
+import pandas as pd
 from dotenv import load_dotenv
 from flask import Flask, jsonify, request, send_from_directory
 from pymongo import MongoClient
-from pathlib import Path
 
 # -------------------------------
 # CONFIGURATION
 # -------------------------------
 load_dotenv()
+
 CSV_PATH = "data/NTAD_Intermodal_Passenger_Connectivity_Database_3388733903903323304.csv"
 JSON_OUT = Path("data/data.json")
 MONGO_URI = os.getenv("MONGO_URI")
@@ -55,7 +57,6 @@ client = MongoClient(MONGO_URI)
 db = client[DB_NAME]
 coll = db[COLL_NAME]
 
-# Drop + reload (for development convenience)
 coll.delete_many({})
 coll.insert_many(df.to_dict("records"))
 print(f"✅ Inserted {coll.count_documents({}):,} stations into MongoDB")
@@ -82,12 +83,16 @@ def get_stations():
 @app.route("/api/maps")
 def get_maps_script():
     key = os.getenv("GOOGLE_MAPS_API_KEY")
-    return f'''
-      const script = document.createElement("script");
-      script.src = "https://maps.googleapis.com/maps/api/js?key={key}&callback=initMap";
-      script.async = true;
-      document.body.appendChild(script);
-    ''', 200, {'Content-Type': 'application/javascript'}
+    return (
+        f'''
+        const script = document.createElement("script");
+        script.src = "https://maps.googleapis.com/maps/api/js?key={key}&callback=initMap";
+        script.async = true;
+        document.body.appendChild(script);
+        ''',
+        200,
+        {'Content-Type': 'application/javascript'}
+    )
 
 @app.route("/")
 def home():
