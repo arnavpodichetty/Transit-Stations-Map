@@ -40,17 +40,34 @@
     #legend div {
       margin-bottom: 4px;
     }
+
+    #debug {
+      background: #f0f0f0;
+      padding: 10px;
+      margin: 10px 20px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
   </style>
 </head>
 <body>
 
   <h3 style="margin:10px 20px 0">Transit Stations Map</h3>
+  
+  <div id="debug">
+    <strong>Debug Info:</strong><br>
+    <div id="debugOutput">Initializing...</div>
+  </div>
 
   <!-- Filters -->
   <div id="controls">
     <label>State:
       <select id="stateFilter">
         <option value="">All</option>
+        <option value="CA" selected>California</option>
       </select>
     </label>
 
@@ -76,7 +93,11 @@
     </label>
 
     <label>
-      <input type="checkbox" id="toggleRoutes" checked> Show Transit Lines
+      <input type="checkbox" id="toggleRoutes"> Show Transit Lines
+    </label>
+
+    <label>
+      <input type="checkbox" id="toggleBottlenecks"> Show Bottlenecks
     </label>
   </div>
 
@@ -91,12 +112,21 @@
     <div><img src="http://maps.google.com/mapfiles/ms/icons/green-dot.png"> Rail</div>
     <div><img src="http://maps.google.com/mapfiles/ms/icons/yellow-dot.png"> Ferry</div>
     <div><img src="http://maps.google.com/mapfiles/ms/icons/purple-dot.png"> Bike</div>
+    <div style="color:#FF5733;">■ Bottlenecks</div>
   </div>
 
   <script>
     let map, markers = [], stationData = [];
-    let routeLayerLoaded = false;
+    let routeLayer = null;
+    let bottleneckLayer = null;
     const typeMap = { 1: "Bus", 2: "Rail", 5: "Ferry", 10: "Air" };
+
+    function debugLog(message) {
+      console.log(message);
+      const debugDiv = document.getElementById("debugOutput");
+      debugDiv.innerHTML += message + "<br>";
+      debugDiv.scrollTop = debugDiv.scrollHeight;
+    }
 
     function primaryMode(st) {
       if (+st.mode_bus)   return "bus";
@@ -148,15 +178,20 @@
 
     function drawMarkers(arr) {
       clearMarkers();
+      debugLog(`Drawing ${arr.length} markers`);
+      
       arr.forEach(st => {
-        if (!st.latitude || !st.longitude) return;
+        const lat = parseFloat(st.latitude);
+        const lng = parseFloat(st.longitude);
         const mode = primaryMode(st);
+
         const m = new google.maps.Marker({
-          position: { lat: +st.latitude, lng: +st.longitude },
+          position: { lat, lng },
           map,
           icon: modeIcon(mode),
           title: `${st.fac_name || st.station_id} (${mode})`
         });
+
         const iw = new google.maps.InfoWindow({ content: popupHTML(st) });
         m.addListener("click", () => iw.open(map, m));
         markers.push(m);
@@ -180,13 +215,19 @@
     }
 
     function loadRoutesLayer() {
-      if (routeLayerLoaded) return;
+      if (routeLayer) {
+        routeLayer.setMap(map);  // Re-show
+        return;
+      }
 
-      fetch("data/California_Transit_Routes.geojson")
+      fetch("/api/routes/geojson?state=CA")
         .then(res => res.json())
         .then(geojson => {
-          map.data.addGeoJson(geojson);
-          map.data.setStyle(feature => {
+          routeLayer = new google.maps.Data({ map });
+
+          routeLayer.addGeoJson(geojson);
+
+          routeLayer.setStyle(feature => {
             const type = feature.getProperty("route_type");
             const colors = {
               "1": "#e41a1c",
@@ -199,71 +240,104 @@
               strokeWeight: 2
             };
           });
-          routeLayerLoaded = true;
+
+          routeLayer.setMap(map);
+        })
+        .catch(error => {
+          debugLog("Error loading routes: " + error.message);
         });
     }
 
-    fetch("data/data.json")
-      .then(res => res.json())
-      .then(data => {
-        stationData = data;
+    function hideRoutesLayer() {
+      if (routeLayer) {
+        routeLayer.setMap(null);
+      }
+    }
 
-        map = new google.maps.Map(document.getElementById("map"), {
-          center: { lat: 39.8283, lng: -98.5795 },
-          zoom: 4
-        });
+    function loadBottlenecksLayer() {
+      if (bottleneckLayer) {
+        bottleneckLayer.setMap(map);
+        return;
+      }
 
-        map.controls[google.maps.ControlPosition.RIGHT_BOTTOM]
-          .push(document.getElementById("legend"));
+      fetch("/api/bottle/geojson")
+        .then(res => res.json())
+        .then(geojson => {
+          bottleneckLayer = new google.maps.Data({ map });
 
-        document.getElementById("toggleMarkers").onchange = e => {
-          const show = e.target.checked;
-          markers.forEach(m => m.setMap(show ? map : null));
-        };
+          bottleneckLayer.addGeoJson(geojson);
 
-        document.getElementById("toggleRoutes").onchange = e => {
-          const show = e.target.checked;
-          if (show) {
-            if (!routeLayerLoaded) {
-              loadRoutesLayer();
-            } else {
-              map.data.setStyle(feature => {
-                const type = feature.getProperty("route_type");
-                const colors = {
-                  "1": "#e41a1c",
-                  "2": "#377eb8",
-                  "3": "#4daf4a",
-                  "default": "#888"
-                };
-                return {
-                  strokeColor: colors[type] || colors.default,
-                  strokeWeight: 2
-                };
-              });
-            }
-          } else {
-            map.data.setStyle(() => ({ visible: false }));
-          }
-        };
+          bottleneckLayer.setStyle({
+            strokeColor: "#FF5733",
+            strokeWeight: 2,
+            fillColor: "#FF5733",
+            fillOpacity: 0.5
+          });
 
-        if (document.getElementById("toggleRoutes").checked) {
-          loadRoutesLayer();
-        }
+          bottleneckLayer.setMap(map);
+        })
+        .catch(err => debugLog("Error loading bottlenecks: " + err));
+    }
 
-        [...new Set(stationData.map(s => s.state))].filter(Boolean).sort()
-          .forEach(s => {
+    function hideBottlenecksLayer() {
+      if (bottleneckLayer) {
+        bottleneckLayer.setMap(null);
+      }
+    }
+
+    window.initMap = function() {
+      fetch("/api/stations?state=CA")
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.json();
+        })
+        .then(data => {
+          stationData = data;
+
+          map = new google.maps.Map(document.getElementById("map"), {
+            center: { lat: 36.7783, lng: -119.4179 },  // CA center
+            zoom: 6
+          });
+
+          map.controls[google.maps.ControlPosition.RIGHT_BOTTOM]
+            .push(document.getElementById("legend"));
+
+          document.getElementById("toggleMarkers").onchange = e => {
+            const show = e.target.checked;
+            markers.forEach(m => m.setMap(show ? map : null));
+          };
+
+          document.getElementById("toggleRoutes").onchange = e => {
+            if (e.target.checked) loadRoutesLayer();
+            else hideRoutesLayer();
+          };
+
+          document.getElementById("toggleBottlenecks").onchange = e => {
+            if (e.target.checked) loadBottlenecksLayer();
+            else hideBottlenecksLayer();
+          };
+
+          const states = [...new Set(stationData.map(s => s.state))].filter(Boolean).sort();
+          states.forEach(s => {
             const opt = document.createElement("option");
             opt.value = opt.text = s;
             document.getElementById("stateFilter").appendChild(opt);
           });
 
-        document.getElementById("stateFilter").onchange = update;
-        document.getElementById("modeFilter").onchange  = update;
-        document.getElementById("nameSearch").oninput   = update;
+          document.getElementById("stateFilter").onchange = update;
+          document.getElementById("modeFilter").onchange = update;
+          document.getElementById("nameSearch").oninput = update;
 
-        update();
-      });
+          update();
+        })
+        .catch(error => {
+          debugLog(`Error loading station data: ${error.message}`);
+        });
+    };
   </script>
-  <script async src="/api/maps"></script>
+
+  <script async defer 
+    src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_API_KEY&callback=initMap&loading=async">
+  </script>
 </body>
 </html>

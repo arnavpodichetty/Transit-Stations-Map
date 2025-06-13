@@ -1,2 +1,4 @@
 .env
 *.geojson
+*.json
+*data/data.json
