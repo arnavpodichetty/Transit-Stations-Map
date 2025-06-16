@@ -99,6 +99,10 @@
     <label>
       <input type="checkbox" id="toggleBottlenecks"> Show Bottlenecks
     </label>
+
+    <label>
+      <input type="checkbox" id="toggleLowIncome"> Show Low-Income Areas
+    </label>
   </div>
 
   <!-- Map -->
@@ -112,6 +116,7 @@
     <div><img src="http://maps.google.com/mapfiles/ms/icons/green-dot.png"> Rail</div>
     <div><img src="http://maps.google.com/mapfiles/ms/icons/yellow-dot.png"> Ferry</div>
     <div><img src="http://maps.google.com/mapfiles/ms/icons/purple-dot.png"> Bike</div>
+    <div style="color:#6a1b9a;">■ Low-Income Areas</div>
     <div style="color:#FF5733;">■ Bottlenecks</div>
   </div>
 
@@ -119,6 +124,7 @@
     let map, markers = [], stationData = [];
     let routeLayer = null;
     let bottleneckLayer = null;
+    let lowIncomeLayer = null;
     const typeMap = { 1: "Bus", 2: "Rail", 5: "Ferry", 10: "Air" };
 
     function debugLog(message) {
@@ -284,6 +290,38 @@
         bottleneckLayer.setMap(null);
       }
     }
+
+    function loadLowIncomeLayer() {
+      if (lowIncomeLayer) {
+        lowIncomeLayer.setMap(map);
+        return;
+      }
+
+      fetch("/api/lowincome/geojson")
+        .then(res => res.json())
+        .then(geojson => {
+          lowIncomeLayer = new google.maps.Data({ map });
+
+          lowIncomeLayer.addGeoJson(geojson);
+
+          lowIncomeLayer.setStyle({
+            strokeColor: "#6a1b9a",
+            strokeWeight: 1.5,
+            fillColor: "#6a1b9a",
+            fillOpacity: 0.3
+          });
+
+          lowIncomeLayer.setMap(map);
+        })
+        .catch(err => debugLog("Error loading low-income layer: " + err));
+    }
+
+    function hideLowIncomeLayer() {
+      if (lowIncomeLayer) {
+        lowIncomeLayer.setMap(null);
+      }
+    }
+
 
     window.initMap = function() {
       fetch("/api/stations?state=CA")

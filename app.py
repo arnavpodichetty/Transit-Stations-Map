@@ -15,14 +15,22 @@ load_dotenv()
 CSV_PATH = "data/NTAD_Intermodal_Passenger_Connectivity_Database_3388733903903323304.csv"
 GEOJSON_PATH = "data/California_Transit_Routes.geojson"
 BOTTLENECK_PATH = "data/Bottlenecks.geojson"
+LOWINCOME_PATH = "data/Low_income.geojson"
+
+
 BOTTLENECK_JSON_OUT = Path("data/bottlenecks.json")
 JSON_OUT = Path("data/data.json")
 ROUTES_JSON_OUT = Path("data/routes.json")
+LOWINCOME_JSON_OUT = Path("data/low_income.json")
+
+
 MONGO_URI = os.getenv("MONGO_URI")
+
 DB_NAME = "transit_data"
 STATIONS_COLL = "stations"
 ROUTES_COLL = "routes"
 BOTTLE_COLL = "bottlenecks"
+LOWINCOME_COLL = "lowincome"
 
 # -------------------------------
 # LOAD AND CLEAN CSV DATA
@@ -105,6 +113,24 @@ else:
     bottleneck_data = []
 
 # -------------------------------
+# LOAD AND PROCESS LOW INCOME DATA
+# -------------------------------
+if Path(LOWINCOME_PATH).exists():
+    lowincome_gdf = gpd.read_file(LOWINCOME_PATH)
+    
+    lowincome_df = pd.DataFrame(lowincome_gdf.drop(columns='geometry'))
+    lowincome_df['geometry'] = lowincome_gdf['geometry'].apply(lambda x: x.__geo_interface__)
+    
+    lowincome_data = lowincome_df.to_dict('records')
+    with open(LOWINCOME_JSON_OUT, 'w') as f:
+        json.dump(lowincome_data, f)
+    lowincome_df = lowincome_df.where(pd.notnull(lowincome_df), None)
+    print(f"✅ Saved {len(routes_df):,} route records to {LOWINCOME_JSON_OUT}")
+else:
+    print(f"⚠️  GeoJSON file not found at {LOWINCOME_PATH}")
+    lowincome_data = []
+
+# -------------------------------
 # MONGODB LOAD
 # -------------------------------
 client = MongoClient(MONGO_URI)
@@ -129,6 +155,12 @@ if bottleneck_data:
     bottleneck_coll.delete_many({})
     bottleneck_coll.insert_many(bottleneck_data)
     print(f"✅ Inserted {bottleneck_coll.count_documents({}):,} bottlenecks into MongoDB")
+
+if lowincome_data:
+    lowincome_coll = db[LOWINCOME_COLL]
+    lowincome_coll.delete_many({})
+    lowincome_coll.insert_many(lowincome_data)
+    print(f"✅ Inserted {lowincome_coll.count_documents({}):,} lowincome into MongoDB")
 
 # -------------------------------
 # FLASK API SETUP
@@ -219,6 +251,29 @@ def get_bottle_geojson():
     
     return jsonify(geojson)
 
+@app.route("/api/lowincome")
+def get_lowincome():
+    results = list(lowincome_coll.find({}, {"_id": 0}))
+    return jsonify(results)
+
+@app.route("/api/lowincome/geojson")
+def get_lowincome_geojson():
+    lowincome = list(lowincome_coll.find({}, {"_id": 0}))
+    
+    geojson = {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "geometry": b["geometry"],
+                "properties": {k: v for k, v in b.items() if k != "geometry"}
+            }
+            for b in lowincome
+        ]
+    }
+    
+    return jsonify(geojson)
+
 @app.route("/api/combined")
 def get_combined_data():
     """Get stations and nearby routes in one call"""
@@ -234,11 +289,13 @@ def get_combined_data():
     stations = list(stations_coll.find(station_filters, {"_id": 0}))
     routes = list(routes_coll.find(route_filters, {"_id": 0}))
     bottlenecks = list(bottleneck_coll.find(route_filters, {"_id": 0}))
+    lowincome = list(lowincome_coll.find(route_filters, {"_id": 0}))
     
     return jsonify({
         "stations": stations,
         "routes": routes,
-        "bottlenecks": bottlenecks
+        "bottlenecks": bottlenecks,
+        "lowincome": lowincome
     })
 
 @app.route("/api/maps")
