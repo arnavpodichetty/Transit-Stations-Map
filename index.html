@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <title>Transit Stations Map</title>
   <meta name="viewport" content="initial-scale=1.0">
+
   <style>
     body {
       margin: 0;
@@ -42,11 +43,12 @@
     }
   </style>
 </head>
+
 <body>
 
   <h3 style="margin:10px 20px 0">Transit Stations Map</h3>
 
-  <!-- Filters -->
+  <!-- Filter Controls -->
   <div id="controls">
     <label>State:
       <select id="stateFilter">
@@ -71,16 +73,13 @@
 
     <br>
 
-    <label>
-      <input type="checkbox" id="toggleMarkers" checked> Show Station Markers
-    </label>
-
-    <label>
-      <input type="checkbox" id="toggleRoutes" checked> Show Transit Lines
-    </label>
+    <label><input type="checkbox" id="toggleMarkers" checked> Show Station Markers</label>
+    <label><input type="checkbox" id="toggleRoutes" checked> Show Transit Lines</label>
+    <label><input type="checkbox" id="toggleBottlenecks" checked> Show Bottlenecks</label>
+    <label><input type="checkbox" id="toggleLowIncome" checked> Show Low-Income Areas</label>
   </div>
 
-  <!-- Map -->
+  <!-- Map Container -->
   <div id="map"></div>
 
   <!-- Legend -->
@@ -93,17 +92,27 @@
     <div><img src="http://maps.google.com/mapfiles/ms/icons/purple-dot.png"> Bike</div>
   </div>
 
+  <!-- Map Script -->
   <script>
-    let map, markers = [], stationData = [];
+    // -----------------------------
+    // Global Variables
+    // -----------------------------
+    let map, markers = [], stationData = [], polylines = [];
+    let bottleneckLines = [];
+    let lowIncomePolygons = [];
     let routeLayerLoaded = false;
+
     const typeMap = { 1: "Bus", 2: "Rail", 5: "Ferry", 10: "Air" };
 
+    // -----------------------------
+    // Utility Functions
+    // -----------------------------
     function primaryMode(st) {
-      if (+st.mode_bus)   return "bus";
-      if (+st.mode_air)   return "air";
-      if (+st.mode_rail)  return "rail";
+      if (+st.mode_bus) return "bus";
+      if (+st.mode_air) return "air";
+      if (+st.mode_rail) return "rail";
       if (+st.mode_ferry) return "ferry";
-      if (+st.mode_bike)  return "bike";
+      if (+st.mode_bike) return "bike";
       return (typeMap[+st.mode_type] || "unknown").toLowerCase();
     }
 
@@ -116,17 +125,16 @@
     }
 
     function fmtAddress(st) {
-      return [st.address, st.city, st.state, st.zipcode]
-        .filter(Boolean).join(", ");
+      return [st.address, st.city, st.state, st.zipcode].filter(Boolean).join(", ");
     }
 
     function popupHTML(st) {
       const modes = [
-        +st.mode_bus   ? "🚌 Bus"   : null,
-        +st.mode_air   ? "✈️ Air"   : null,
-        +st.mode_rail  ? "🚆 Rail"  : null,
+        +st.mode_bus ? "🚌 Bus" : null,
+        +st.mode_air ? "✈️ Air" : null,
+        +st.mode_rail ? "🚆 Rail" : null,
         +st.mode_ferry ? "⛴️ Ferry" : null,
-        +st.mode_bike  ? "🚲 Bike"  : null
+        +st.mode_bike ? "🚲 Bike" : null
       ].filter(Boolean).join(" | ") || (typeMap[+st.mode_type] || "");
 
       const url = st.website?.startsWith("http") ? st.website : `https://${st.website}`;
@@ -136,11 +144,14 @@
         <b>ID:</b> ${st.station_id}<br>
         <b>Address:</b> ${fmtAddress(st)}<br>
         <b>Modes:</b> ${modes}<br>
-        ${st.website ? `<a href="${url}" target="_blank" rel="noopener noreferrer">Website</a><br>` : ""}
+        ${st.website ? `<a href="${url}" target="_blank">Website</a><br>` : ""}
         ${st.notes ? `<i>${st.notes}</i><br>` : ""}
       `;
     }
 
+    // -----------------------------
+    // Marker Functions
+    // -----------------------------
     function clearMarkers() {
       markers.forEach(m => m.setMap(null));
       markers = [];
@@ -163,14 +174,28 @@
       });
     }
 
+    // -----------------------------
+    // Filtering & UI Events
+    // -----------------------------
     function filtered() {
       const state = document.getElementById("stateFilter").value;
-      const mode  = document.getElementById("modeFilter").value;
-      const name  = document.getElementById("nameSearch").value.toLowerCase();
+      const mode = document.getElementById("modeFilter").value;
+      const name = document.getElementById("nameSearch").value.toLowerCase();
+
+      document.getElementById("toggleBottlenecks").onchange = e => {
+        const show = e.target.checked;
+        bottleneckLines.forEach(l => l.setMap(show ? map : null));
+      };
+
+      document.getElementById("toggleLowIncome").onchange = e => {
+        const show = e.target.checked;
+        lowIncomePolygons.forEach(p => p.setMap(show ? map : null));
+      };
+
       return stationData.filter(st => {
         if (state && st.state !== state) return false;
-        if (mode  && primaryMode(st) !== mode) return false;
-        if (name  && !(st.fac_name || "").toLowerCase().includes(name)) return false;
+        if (mode && primaryMode(st) !== mode) return false;
+        if (name && !(st.fac_name || "").toLowerCase().includes(name)) return false;
         return true;
       });
     }
@@ -179,38 +204,173 @@
       drawMarkers(filtered());
     }
 
-    function loadRoutesLayer() {
-      if (routeLayerLoaded) return;
+    // -----------------------------
+    // Transit Route Drawing
+    // -----------------------------
+    function clearPolylines() {
+      polylines.forEach(p => p.setMap(null));
+      polylines = [];
+    }
 
-      fetch("data/California_Transit_Routes.geojson")
+    function loadRoutesLayer() {
+      fetch("data/routes.json")
         .then(res => res.json())
-        .then(geojson => {
-          map.data.addGeoJson(geojson);
-          map.data.setStyle(feature => {
-            const type = feature.getProperty("route_type");
-            const colors = {
-              "1": "#e41a1c",
-              "2": "#377eb8",
-              "3": "#4daf4a",
-              "default": "#888"
+        .then(routes => {
+          clearPolylines();
+          routes.forEach(route => {
+            const colorMap = {
+              "1": "#e41a1c", "2": "#377eb8", "3": "#4daf4a"
             };
-            return {
-              strokeColor: colors[type] || colors.default,
-              strokeWeight: 2
-            };
+            const coords = route.coordinates;
+            if (!coords || coords.length === 0) return;
+
+            const paths = [];
+
+            if (route.geometry_type === "LineString") {
+              paths.push(coords.map(c => ({ lat: c[1], lng: c[0] })));
+            } else if (route.geometry_type === "MultiLineString") {
+              coords.forEach(seg => paths.push(seg.map(c => ({ lat: c[1], lng: c[0] }))));
+            }
+
+            paths.forEach(path => {
+              const polyline = new google.maps.Polyline({
+                path,
+                map,
+                strokeColor: colorMap[route.route_type] || "#888",
+                strokeOpacity: 1.0,
+                strokeWeight: 2
+              });
+              polylines.push(polyline);
+            });
           });
+
           routeLayerLoaded = true;
         });
     }
 
+    function toggleRoutes(show) {
+      if (show) {
+        if (polylines.length === 0) loadRoutesLayer();
+        else polylines.forEach(p => p.setMap(map));
+      } else {
+        clearPolylines();
+      }
+    }
+
+    // -----------------------------
+    // Bottleneck Lines
+    // -----------------------------
+    function drawBottlenecks() {
+      fetch("data/bottlenecks.json")
+        .then(res => res.json())
+        .then(bottlenecks => {
+          bottlenecks.forEach(bn => {
+            const color = "#ff7f00";
+            const paths = [];
+
+            if (bn.geometry_type === "LineString") {
+              paths.push(bn.coordinates.map(c => ({ lat: c[1], lng: c[0] })));
+            } else if (bn.geometry_type === "MultiLineString") {
+              bn.coordinates.forEach(seg => paths.push(seg.map(c => ({ lat: c[1], lng: c[0] }))));
+            }
+
+            paths.forEach(path => {
+              const polyline = new google.maps.Polyline({
+                path,
+                map,
+                strokeColor: color,
+                strokeOpacity: 0.9,
+                strokeWeight: 4,
+                zIndex: 1
+              });
+
+              polyline.set("info", {
+                name: bn.name,
+                county: bn.county,
+                rank: bn.rank,
+                delay: bn.delay_hours
+              });
+
+              polyline.addListener("click", (e) => {
+                const info = polyline.get("info");
+                new google.maps.InfoWindow({
+                  content: `<b>${info.name}</b><br>County: ${info.county}<br>Rank: ${info.rank}<br>Total Delay: ${info.delay} veh-hrs`,
+                  position: e.latLng
+                }).open(map);
+              });
+
+              bottleneckLines.push(polyline);
+            });
+          });
+        });
+    }
+
+    function toggleBottlenecks(show) {
+      bottleneckLines.forEach(line => line.setMap(show ? map : null));
+    }
+
+    // -----------------------------
+    // Low-Income Area Polygons
+    // -----------------------------
+    function drawLowIncomeAreas() {
+      fetch("data/low_income.json")
+        .then(res => res.json())
+        .then(tracts => {
+          tracts.forEach(area => {
+            const paths = [];
+
+            if (area.geometry_type === "Polygon") {
+              paths.push(area.coordinates[0].map(c => ({ lat: c[1], lng: c[0] })));
+            } else if (area.geometry_type === "MultiPolygon") {
+              area.coordinates.forEach(polygon => {
+                paths.push(polygon[0].map(c => ({ lat: c[1], lng: c[0] })));
+              });
+            }
+
+            paths.forEach(path => {
+              const polygon = new google.maps.Polygon({
+                paths: path,
+                strokeColor: "#8e44ad",
+                strokeOpacity: 0.8,
+                strokeWeight: 1.5,
+                fillColor: "#8e44ad",
+                fillOpacity: 0.2,
+                map
+              });
+
+              polygon.set("info", {
+                geoid: area.geoid,
+                county: area.county,
+                tract: area.tract,
+                poverty: area.poverty_pct,
+                ci_score: area.ci_score
+              });
+
+              polygon.addListener("click", (e) => {
+                const info = polygon.get("info");
+                new google.maps.InfoWindow({
+                  content: `<b>${info.tract}</b><br>County: ${info.county}<br>Poverty: ${info.poverty}%<br>CI Score: ${info.ci_score}`,
+                  position: e.latLng
+                }).open(map);
+              });
+
+              lowIncomePolygons.push(polygon);
+            });
+          });
+        });
+    }
+
+    // -----------------------------
+    // Initialization
+    // -----------------------------
     fetch("data/data.json")
       .then(res => res.json())
       .then(data => {
         stationData = data;
 
         map = new google.maps.Map(document.getElementById("map"), {
-          center: { lat: 39.8283, lng: -98.5795 },
-          zoom: 4
+          center: { lat: 36.7783, lng: -119.4179 },
+          zoom: 6
         });
 
         map.controls[google.maps.ControlPosition.RIGHT_BOTTOM]
@@ -222,28 +382,7 @@
         };
 
         document.getElementById("toggleRoutes").onchange = e => {
-          const show = e.target.checked;
-          if (show) {
-            if (!routeLayerLoaded) {
-              loadRoutesLayer();
-            } else {
-              map.data.setStyle(feature => {
-                const type = feature.getProperty("route_type");
-                const colors = {
-                  "1": "#e41a1c",
-                  "2": "#377eb8",
-                  "3": "#4daf4a",
-                  "default": "#888"
-                };
-                return {
-                  strokeColor: colors[type] || colors.default,
-                  strokeWeight: 2
-                };
-              });
-            }
-          } else {
-            map.data.setStyle(() => ({ visible: false }));
-          }
+          toggleRoutes(e.target.checked);
         };
 
         if (document.getElementById("toggleRoutes").checked) {
@@ -258,12 +397,17 @@
           });
 
         document.getElementById("stateFilter").onchange = update;
-        document.getElementById("modeFilter").onchange  = update;
-        document.getElementById("nameSearch").oninput   = update;
+        document.getElementById("modeFilter").onchange = update;
+        document.getElementById("nameSearch").oninput = update;
 
+        drawBottlenecks();
+        drawLowIncomeAreas();
         update();
       });
   </script>
+
+  <!-- Google Maps Loader -->
   <script async src="/api/maps"></script>
+
 </body>
 </html>

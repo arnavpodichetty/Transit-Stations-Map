@@ -1,73 +1,20 @@
 import os
-from pathlib import Path
-
-import pandas as pd
-from dotenv import load_dotenv
 from flask import Flask, jsonify, request, send_from_directory
-from pymongo import MongoClient
+from dotenv import load_dotenv
+import json
 
 # -------------------------------
 # CONFIGURATION
 # -------------------------------
 load_dotenv()
-
-CSV_PATH = "data/NTAD_Intermodal_Passenger_Connectivity_Database_3388733903903323304.csv"
-JSON_OUT = Path("data/data.json")
-MONGO_URI = os.getenv("MONGO_URI")
-DB_NAME = "transit_data"
-COLL_NAME = "stations"
-
-# -------------------------------
-# LOAD AND CLEAN CSV DATA
-# -------------------------------
-df = pd.read_csv(CSV_PATH)
-df.columns = df.columns.str.lower()
-
-keep_cols = [
-    "fac_id", "fac_name", "address", "city", "state", "zipcode",
-    "x", "y", "fac_type",
-    "mode_bus", "mode_air", "mode_rail", "mode_ferry", "mode_bike",
-    "website", "notes"
-]
-
-missing = [col for col in keep_cols if col not in df.columns]
-if missing:
-    raise ValueError(f"Missing expected columns: {missing}")
-
-df = df[keep_cols].rename(columns={
-    "fac_id": "station_id",
-    "x": "longitude",
-    "y": "latitude",
-    "fac_type": "mode_type"
-})
-
-for col in ["mode_bus", "mode_air", "mode_rail", "mode_ferry", "mode_bike"]:
-    df[col] = df[col].fillna(0).astype(int)
-
-df = df.dropna(subset=["latitude", "longitude"])
-
-JSON_OUT.parent.mkdir(exist_ok=True)
-df.to_json(JSON_OUT, orient="records")
-print(f"✅ Saved {len(df):,} rows to {JSON_OUT}")
-
-# -------------------------------
-# MONGODB LOAD
-# -------------------------------
-client = MongoClient(MONGO_URI)
-db = client[DB_NAME]
-coll = db[COLL_NAME]
-
-coll.delete_many({})
-coll.insert_many(df.to_dict("records"))
-print(f"✅ Inserted {coll.count_documents({}):,} stations into MongoDB")
-
-# -------------------------------
-# FLASK API SETUP
-# -------------------------------
 app = Flask(__name__)
+STATION_JSON_PATH = "data/data.json"
 
 @app.route("/api/stations")
 def get_stations():
+    with open(STATION_JSON_PATH, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
     filters = {}
 
     if request.args.get("state"):
@@ -77,8 +24,23 @@ def get_stations():
         mode_field = f"mode_{request.args['mode'].lower()}"
         filters[mode_field] = 1
 
-    results = list(coll.find(filters, {"_id": 0}))
-    return jsonify(results)
+    filtered = []
+    for station in data:
+        if filters.get("state") and station.get("state") != filters["state"]:
+            continue
+        if "mode_bus" in filters and station.get("mode_bus") != 1:
+            continue
+        if "mode_air" in filters and station.get("mode_air") != 1:
+            continue
+        if "mode_rail" in filters and station.get("mode_rail") != 1:
+            continue
+        if "mode_ferry" in filters and station.get("mode_ferry") != 1:
+            continue
+        if "mode_bike" in filters and station.get("mode_bike") != 1:
+            continue
+        filtered.append(station)
+
+    return jsonify(filtered)
 
 @app.route("/api/maps")
 def get_maps_script():
@@ -102,8 +64,5 @@ def home():
 def static_files(path):
     return send_from_directory(".", path)
 
-# -------------------------------
-# Run server
-# -------------------------------
 if __name__ == "__main__":
     app.run()
