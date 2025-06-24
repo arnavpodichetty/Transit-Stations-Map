@@ -3,7 +3,7 @@ from pathlib import Path
 import pandas as pd
 
 # File paths
-GEOJSON_PATH_STATIONS = "data/NTAD_Intermodal_Passenger_Connectivity_Database.geojson"
+GEOJSON_PATH_STATIONS = "data/Markers_California_Only_Strict.geojson"
 GEOJSON_PATH_ROUTES = "data/California_Only_Strict.geojson"
 JSON_OUT_STATIONS = Path("data/data.json")
 JSON_OUT_ROUTES = Path("data/routes.json")
