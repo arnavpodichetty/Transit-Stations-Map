@@ -1,0 +1,57 @@
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Prevent scrolling */
+}
+
+.App {
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* Use full viewport height */
+}
+
+#map {
+  flex-grow: 1; /* Make map take up remaining space */
+  height: 100%; /* Ensure it takes available height */
+  width: 100%;
+  background-color: #f0f0f0; /* Fallback background color */
+}
+
+#controls {
+  padding: 10px 20px;
+  background-color: #f8f8f8;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+#controls label {
+  margin-right: 15px;
+}
+
+#routeTypeCheckboxes label {
+  margin-right: 10px;
+}
+
+/* Legend styling (if you re-enable it later) */
+#legend {
+  background-color: #fff;
+  padding: 10px;
+  border: 1px solid #ccc;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+  margin: 10px;
+  font-size: 14px;
+}
+
+#legend div {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+#legend span {
+  margin-right: 8px;
+}
