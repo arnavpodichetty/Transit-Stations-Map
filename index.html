@@ -41,6 +41,21 @@
     #legend div {
       margin-bottom: 4px;
     }
+
+    /* New style for checkbox group */
+    #routeTypeCheckboxes {
+      display: inline-block;
+      margin-right: 8px;
+      padding: 4px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 5px;
+      vertical-align: top;
+    }
+    #routeTypeCheckboxes label {
+        display: block;
+        margin-bottom: 2px;
+    }
   </style>
 </head>
 
@@ -48,7 +63,6 @@
 
   <h3 style="margin:10px 20px 0">Transit Stations Map</h3>
 
-  <!-- Filter Controls -->
   <div id="controls">
     <label>State:
       <select id="stateFilter">
@@ -67,22 +81,29 @@
       </select>
     </label>
 
+    <div id="routeTypeCheckboxes">
+        <label>Route Type:</label>
+        <label><input type="checkbox" class="routeType" value="1" checked> Type 1</label>
+        <label><input type="checkbox" class="routeType" value="2" checked> Type 2</label>
+        <label><input type="checkbox" class="routeType" value="3" checked> Type 3</label>
+        <label><input type="checkbox" class="routeType" value="4" checked> Type 4</label>
+        <label><input type="checkbox" class="routeType" value="5" checked> Type 5</label>
+        <label><input type="checkbox" class="routeType" value="0" checked> Type 0</label>
+    </div>
+
     <label>Search:
       <input type="text" id="nameSearch" placeholder="Name contains…">
     </label>
 
     <br>
 
-    <label><input type="checkbox" id="toggleMarkers" checked> Show Station Markers</label>
     <label><input type="checkbox" id="toggleRoutes" checked> Show Transit Lines</label>
     <label><input type="checkbox" id="toggleBottlenecks" checked> Show Bottlenecks</label>
     <label><input type="checkbox" id="toggleLowIncome" checked> Show Low-Income Areas</label>
   </div>
 
-  <!-- Map Container -->
   <div id="map"></div>
 
-  <!-- Legend -->
   <div id="legend">
     <b>Legend</b><br>
     <div><img src="http://maps.google.com/mapfiles/ms/icons/red-dot.png"> Bus</div>
@@ -92,21 +113,24 @@
     <div><img src="http://maps.google.com/mapfiles/ms/icons/purple-dot.png"> Bike</div>
   </div>
 
-  <!-- Map Script -->
   <script>
     // -----------------------------
     // Global Variables
     // -----------------------------
-    let map, markers = [], stationData = [], polylines = [];
+    let map; // markers, stationData removed as they are not used when commented out
+    let polylines = [];
     let bottleneckLines = [];
     let lowIncomePolygons = [];
     let routeLayerLoaded = false;
+    let allRoutes = [];
 
-    const typeMap = { 1: "Bus", 2: "Rail", 5: "Ferry", 10: "Air" };
+    // **IMPORTANT:** Replace 'YOUR_MAP_ID_HERE' with your actual Map ID from Google Cloud Console
+    const MAP_ID = 'YOUR_MAP_ID_HERE'; // <-- Add your Map ID here
 
     // -----------------------------
-    // Utility Functions
+    // Utility Functions (Marker-related ones commented out)
     // -----------------------------
+    /*
     function primaryMode(st) {
       if (+st.mode_bus) return "bus";
       if (+st.mode_air) return "air";
@@ -116,12 +140,16 @@
       return (typeMap[+st.mode_type] || "unknown").toLowerCase();
     }
 
-    function modeIcon(mode) {
+    function modeIconElement(mode) {
       const color = {
         bus: "red", air: "blue", rail: "green",
         ferry: "yellow", bike: "purple"
       }[mode] || "orange";
-      return `http://maps.google.com/mapfiles/ms/icons/${color}-dot.png`;
+      const img = document.createElement("img");
+      img.src = `http://maps.google.com/mapfiles/ms/icons/$${color}-dot.png`;
+      img.style.width = "24px";
+      img.style.height = "24px";
+      return img;
     }
 
     function fmtAddress(st) {
@@ -148,24 +176,30 @@
         ${st.notes ? `<i>${st.notes}</i><br>` : ""}
       `;
     }
+    */
 
     // -----------------------------
-    // Marker Functions
+    // Marker Functions (All commented out)
     // -----------------------------
+    /*
     function clearMarkers() {
-      markers.forEach(m => m.setMap(null));
+      markers.forEach(m => m.map = null);
       markers = [];
     }
 
-    function drawMarkers(arr) {
+    async function drawMarkers(arr) {
       clearMarkers();
+      if (!google.maps.marker) {
+        await google.maps.importLibrary("marker");
+      }
+
       arr.forEach(st => {
         if (!st.latitude || !st.longitude) return;
         const mode = primaryMode(st);
-        const m = new google.maps.Marker({
+        const m = new google.maps.marker.AdvancedMarkerElement({
           position: { lat: +st.latitude, lng: +st.longitude },
           map,
-          icon: modeIcon(mode),
+          content: modeIconElement(mode),
           title: `${st.fac_name || st.station_id} (${mode})`
         });
         const iw = new google.maps.InfoWindow({ content: popupHTML(st) });
@@ -173,24 +207,16 @@
         markers.push(m);
       });
     }
+    */
 
     // -----------------------------
-    // Filtering & UI Events
+    // Filtering & UI Events (Marker-related ones commented out/removed)
     // -----------------------------
-    function filtered() {
+    /*
+    function filterStations() {
       const state = document.getElementById("stateFilter").value;
       const mode = document.getElementById("modeFilter").value;
       const name = document.getElementById("nameSearch").value.toLowerCase();
-
-      document.getElementById("toggleBottlenecks").onchange = e => {
-        const show = e.target.checked;
-        bottleneckLines.forEach(l => l.setMap(show ? map : null));
-      };
-
-      document.getElementById("toggleLowIncome").onchange = e => {
-        const show = e.target.checked;
-        lowIncomePolygons.forEach(p => p.setMap(show ? map : null));
-      };
 
       return stationData.filter(st => {
         if (state && st.state !== state) return false;
@@ -200,9 +226,30 @@
       });
     }
 
-    function update() {
-      drawMarkers(filtered());
+    function updateStationMarkers() {
+      // drawMarkers(filterStations()); // This line would be commented out if filterStations was active
     }
+    */
+
+    // This function remains as it pertains to routes, not markers
+    function filterAndDrawRoutes() {
+        clearPolylines();
+
+        const checkedRouteTypes = Array.from(document.querySelectorAll('.routeType:checked'))
+                                       .map(checkbox => checkbox.value);
+
+        if (checkedRouteTypes.length === 0 || !allRoutes || allRoutes.length === 0) {
+            console.log("No route types selected or routes data not loaded.");
+            return;
+        }
+
+        const filteredRoutes = allRoutes.filter(route => {
+            return checkedRouteTypes.includes(String(route.route_type));
+        });
+
+        drawRoutes(filteredRoutes);
+    }
+
 
     // -----------------------------
     // Transit Route Drawing
@@ -212,14 +259,11 @@
       polylines = [];
     }
 
-    function loadRoutesLayer() {
-      fetch("data/routes.json")
-        .then(res => res.json())
-        .then(routes => {
-          clearPolylines();
-          routes.forEach(route => {
+    function drawRoutes(routesToDraw) {
+        routesToDraw.forEach(route => {
             const colorMap = {
-              "1": "#e41a1c", "2": "#377eb8", "3": "#4daf4a"
+              "1": "#e41a1c", "2": "#377eb8", "3": "#4daf4a",
+              "4": "#984ea3", "5": "#ff7f00", "0": "#a65628"
             };
             const coords = route.coordinates;
             if (!coords || coords.length === 0) return;
@@ -242,16 +286,27 @@
               });
               polylines.push(polyline);
             });
-          });
+        });
+    }
 
+
+    function loadRoutesLayer() {
+      fetch("data/routes.json")
+        .then(res => res.json())
+        .then(routes => {
+          allRoutes = routes;
           routeLayerLoaded = true;
+          filterAndDrawRoutes();
         });
     }
 
     function toggleRoutes(show) {
       if (show) {
-        if (polylines.length === 0) loadRoutesLayer();
-        else polylines.forEach(p => p.setMap(map));
+        if (polylines.length === 0 && !routeLayerLoaded) {
+            loadRoutesLayer();
+        } else {
+            filterAndDrawRoutes();
+        }
       } else {
         clearPolylines();
       }
@@ -363,50 +418,70 @@
     // -----------------------------
     // Initialization
     // -----------------------------
-    fetch("data/data.json")
-      .then(res => res.json())
-      .then(data => {
-        stationData = data;
+    async function initMap() {
+        // await google.maps.importLibrary("marker"); // Commented out marker library import
 
-        map = new google.maps.Map(document.getElementById("map"), {
-          center: { lat: 36.7783, lng: -119.4179 },
-          zoom: 6
-        });
+        // Commented out the fetch for stationData and related processing
+        /*
+        fetch("data/data.json")
+        .then(res => res.json())
+        .then(data => {
+            stationData = data;
+        */
+            map = new google.maps.Map(document.getElementById("map"), {
+                center: { lat: 36.7783, lng: -119.4179 },
+                zoom: 6,
+                mapId: MAP_ID
+            });
 
-        map.controls[google.maps.ControlPosition.RIGHT_BOTTOM]
-          .push(document.getElementById("legend"));
+            map.controls[google.maps.ControlPosition.RIGHT_BOTTOM]
+                .push(document.getElementById("legend"));
 
-        document.getElementById("toggleMarkers").onchange = e => {
-          const show = e.target.checked;
-          markers.forEach(m => m.setMap(show ? map : null));
-        };
+            // Commented out toggleMarkers event listener
+            /*
+            document.getElementById("toggleMarkers").onchange = e => {
+                const show = e.target.checked;
+                markers.forEach(m => m.map = show ? map : null);
+            };
+            */
 
-        document.getElementById("toggleRoutes").onchange = e => {
-          toggleRoutes(e.target.checked);
-        };
+            document.getElementById("toggleRoutes").onchange = e => {
+                toggleRoutes(e.target.checked);
+            };
 
-        if (document.getElementById("toggleRoutes").checked) {
-          loadRoutesLayer();
-        }
+            document.querySelectorAll('.routeType').forEach(checkbox => {
+                checkbox.onchange = () => {
+                    if (document.getElementById("toggleRoutes").checked) {
+                        filterAndDrawRoutes();
+                    }
+                };
+            });
 
-        [...new Set(stationData.map(s => s.state))].filter(Boolean).sort()
-          .forEach(s => {
-            const opt = document.createElement("option");
-            opt.value = opt.text = s;
-            document.getElementById("stateFilter").appendChild(opt);
-          });
+            // Commented out state and mode filters as they rely on stationData
+            /*
+            [...new Set(stationData.map(s => s.state))].filter(Boolean).sort()
+                .forEach(s => {
+                    const opt = document.createElement("option");
+                    opt.value = opt.text = s;
+                    document.getElementById("stateFilter").appendChild(opt);
+                });
 
-        document.getElementById("stateFilter").onchange = update;
-        document.getElementById("modeFilter").onchange = update;
-        document.getElementById("nameSearch").oninput = update;
+            document.getElementById("stateFilter").onchange = updateStationMarkers;
+            document.getElementById("modeFilter").onchange = updateStationMarkers;
+            document.getElementById("nameSearch").oninput = updateStationMarkers;
+            */
 
-        drawBottlenecks();
-        drawLowIncomeAreas();
-        update();
-      });
+            drawBottlenecks();
+            drawLowIncomeAreas();
+            // updateStationMarkers(); // Commented out initial marker drawing
+
+            if (document.getElementById("toggleRoutes").checked) {
+                loadRoutesLayer();
+            }
+        // }); // Closing bracket for the commented-out fetch promise
+    }
   </script>
 
-  <!-- Google Maps Loader -->
   <script async src="/api/maps"></script>
 
 </body>
