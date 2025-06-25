@@ -3,21 +3,21 @@ html, body, #root {
   height: 100%;
   margin: 0;
   padding: 0;
-  overflow: hidden; /* Prevent scrolling */
+  overflow: hidden;
   font-family: Arial, Helvetica, sans-serif;
 }
 
 .App {
   display: flex;
   flex-direction: column;
-  height: 100vh; /* Use full viewport height */
+  height: 100vh;
 }
 
 #map {
-  flex-grow: 1; /* Make map take up remaining space */
-  height: 100%; /* Ensure it takes available height */
+  flex-grow: 1;
+  height: 100%;
   width: 100%;
-  background-color: #f0f0f0; /* Fallback background color */
+  background-color: #f0f0f0;
 }
 
 #controls {
