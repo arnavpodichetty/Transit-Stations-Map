@@ -2,6 +2,7 @@ import os
 from flask import Flask, jsonify, request, send_from_directory
 from dotenv import load_dotenv
 import json
+from flask_cors import CORS  # Add this line to handle CORS
 
 # -------------------------------
 # CONFIGURATION
@@ -9,9 +10,11 @@ import json
 load_dotenv()
 app = Flask(__name__, static_folder='my-map-app/dist', static_url_path='/')
 
+# Enable CORS for all routes
+CORS(app)
+
 # Path to your original station data JSON file (Flask will read this)
-# Make sure this path is correct relative to where you run app.py
-STATION_JSON_PATH = "app/public/data/data.json" # Assuming 'data' folder is next to app.py
+STATION_JSON_PATH = "app/public/data/data.json"  # Assuming 'data' folder is next to app.py
 
 @app.route("/api/stations")
 def get_stations():
@@ -34,16 +37,8 @@ def get_stations():
         filters["state"] = request.args["state"].upper()
 
     if request.args.get("mode"):
-        # Map modes to their respective numeric flags (assuming this is how your data is structured)
-        # Note: Your JS uses 'bus', 'air', etc. directly, not 'mode_bus'.
-        # We'll need to adapt the React frontend to send correct API params if needed,
-        # or simplify this backend logic if filters are applied client-side anyway.
-        # For now, let's keep it as per your original app.py logic.
         mode_field = f"mode_{request.args['mode'].lower()}"
-        filters[mode_field] = 1 # Assuming 1 means "has this mode"
-
-    # Client-side search for 'name' will be handled in React's `updateStationMarkers` logic
-    # as the backend is designed for specific `mode_field` filters.
+        filters[mode_field] = 1  # Assuming 1 means "has this mode"
 
     filtered = []
     for station in data:
@@ -51,7 +46,7 @@ def get_stations():
         if filters.get("state") and station.get("state") != filters["state"]:
             continue
 
-        # Apply mode filters (these are mutually exclusive in the filter logic provided)
+        # Apply mode filters
         if "mode_bus" in filters and station.get("mode_bus") != 1:
             continue
         if "mode_air" in filters and station.get("mode_air") != 1:
@@ -67,28 +62,19 @@ def get_stations():
 
     return jsonify(filtered)
 
-# --- Removed @app.route("/api/maps") as it's handled directly by React's index.html ---
-
 # Serve the React app's index.html for the root route
 @app.route('/')
 def serve_react_app():
     """Serves the main index.html file from the React build."""
-    # This route will primarily be used in production after `npm run build`
-    # In development, Vite's dev server handles '/'
     return send_from_directory(app.static_folder, 'index.html')
 
-# Serve all other static files (JS, CSS, assets, and data files copied by Vite)
+# Serve all other static files (JS, CSS, images, and data files copied by Vite)
 @app.route('/<path:filename>')
 def serve_static_files(filename):
     """Serves static files like JS, CSS, images, and data from the React build."""
-    # This catches all other files that Vite has placed in the dist folder,
-    # including your data files (routes.json, bottlenecks.json, low_income.json)
-    # if they are copied from public/data during the Vite build.
     return send_from_directory(app.static_folder, filename)
 
 if __name__ == "__main__":
-    # Ensure the 'data' folder with data.json is next to app.py
-    # or adjust STATION_JSON_PATH accordingly.
     print(f"Serving React app from: {app.static_folder}")
     print(f"Looking for station data at: {STATION_JSON_PATH}")
-    app.run(debug=True, port=5000) # Using port 5000 for Flask by default
+    app.run(debug=True, port=5000)

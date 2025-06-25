@@ -1,42 +1,201 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+/* Global styles - moved from index.css */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Prevent scrolling */
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.App {
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* Use full viewport height */
+}
+
+#map {
+  flex-grow: 1; /* Make map take up remaining space */
+  height: 100%; /* Ensure it takes available height */
+  width: 100%;
+  background-color: #f0f0f0; /* Fallback background color */
+}
+
+#controls {
+  padding: 10px 20px;
+  background-color: #f8f8f8;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+#controls label {
+  margin-right: 15px;
+}
+
+/* Header styling */
+.map-title {
+  margin: 10px 20px 0;
+}
+
+/* Form inputs */
+select, input[type="text"] {
+  margin-right: 8px;
+  padding: 4px;
+}
+
+.control-input {
+  margin-left: 4px;
+  padding: 4px;
+}
+
+.control-label {
+  display: inline-block;
+  margin-right: 8px;
+}
+
+.checkbox-input {
+  margin-right: 4px;
+}
+
+/* Route type dropdown styling */
+.route-type-dropdown {
+  position: relative;
+  display: inline-block;
+  margin-right: 15px;
+}
+
+.dropdown-toggle {
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 6px 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  min-width: 180px;
+  justify-content: space-between;
+}
+
+.dropdown-toggle:hover {
+  background-color: #f5f5f5;
+}
+
+.dropdown-arrow {
+  transition: transform 0.2s ease;
+  font-size: 12px;
+}
+
+.dropdown-arrow.open {
+  transform: rotate(180deg);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  z-index: 1000;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.dropdown-header {
+  padding: 8px 12px;
+  border-bottom: 1px solid #eee;
+  background-color: #f8f9fa;
+}
+
+.select-all-btn {
+  background: none;
+  border: none;
+  color: #007bff;
+  cursor: pointer;
+  font-size: 12px;
+  text-decoration: underline;
+}
+
+.select-all-btn:hover {
+  color: #0056b3;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.dropdown-item:hover {
+  background-color: #f8f9fa;
+}
+
+.dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.route-type-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-left: 8px;
+}
+
+.route-type-color {
+  width: 16px;
+  height: 16px;
+  border-radius: 2px;
+  margin-left: 8px;
+}
+
+/* Loading and error states */
+.loading-container {
+  padding: 20px;
   text-align: center;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+.error-container {
+  padding: 20px;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.error-box {
+  padding: 20px;
+  background-color: #ffebee;
+  border: 1px solid #f44336;
+  border-radius: 4px;
+  color: #d32f2f;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+/* Legend positioning */
+#legend {
+  position: fixed;
+  bottom: 10px;
+  right: 10px;
+  background: #fff;
+  padding: 8px 10px;
+  border-radius: 6px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.3);
+  font-size: 14px;
+  z-index: 1000;
 }
 
-.card {
-  padding: 2em;
+#legend div {
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
 }
 
-.read-the-docs {
-  color: #888;
+#legend img {
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
 }
