@@ -18,3 +18,8 @@ For route_type:
 - 1 bart/light rail
 - 5 is cable car
 - 0 some sort of light rail (vta), sfo transit, sf night bus, LA Metro, 
+
+Running app:
+- have npm or install
+- npm install
+- run with npm run dev

@@ -33,7 +33,7 @@ function TransitMap() {
   const [showBottlenecks, setShowBottlenecks] = useState(false);
   const [showLowIncome, setShowLowIncome] = useState(false);
 
-  const MAP_ID = 'YOUR_MAP_ID_HERE';
+  const MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 
   // Load Google Maps Script
   const loadGoogleMapsScript = () => {
@@ -406,128 +406,129 @@ function TransitMap() {
       <h3 className="map-title">Transit Stations Map</h3>
 
       <div id="controls">
-        <label className="control-label">
-          State:
-          <select 
-            id="stateFilter"
-            value={stateFilter} 
-            onChange={(e) => setStateFilter(e.target.value)}
-            className="control-input"
-          >
-            <option value="">All</option>
-          </select>
-        </label>
+    <label className="control-label">
+        State:
+        <select 
+        id="stateFilter"
+        value={stateFilter} 
+        onChange={(e) => setStateFilter(e.target.value)}
+        className="control-input"
+        >
+        <option value="">All</option>
+        </select>
+    </label>
 
-        <label className="control-label">
-          Mode:
-          <select 
-            id="modeFilter"
-            value={modeFilter} 
-            onChange={(e) => setModeFilter(e.target.value)}
-            className="control-input"
-          >
-            <option value="">All</option>
-            <option value="bus">Bus</option>
-            <option value="air">Air</option>
-            <option value="rail">Rail</option>
-            <option value="ferry">Ferry</option>
-            <option value="bike">Bike</option>
-          </select>
-        </label>
+    <label className="control-label">
+        Mode:
+        <select 
+        id="modeFilter"
+        value={modeFilter} 
+        onChange={(e) => setModeFilter(e.target.value)}
+        className="control-input"
+        >
+        <option value="">All</option>
+        <option value="bus">Bus</option>
+        <option value="air">Air</option>
+        <option value="rail">Rail</option>
+        <option value="ferry">Ferry</option>
+        <option value="bike">Bike</option>
+        </select>
+    </label>
 
-        <div className="route-type-dropdown">
-          <button 
-            className="dropdown-toggle"
-            onClick={() => setIsRouteDropdownOpen(!isRouteDropdownOpen)}
-            type="button"
-          >
-            Route Types: {getSelectedRouteTypesText()}
-            <span className={`dropdown-arrow ${isRouteDropdownOpen ? 'open' : ''}`}>
-              ▼
-            </span>
-          </button>
-          
-          {isRouteDropdownOpen && (
-            <div className="dropdown-menu">
-              <div className="dropdown-header">
-                <button 
-                  className="select-all-btn"
-                  onClick={toggleAllRouteTypes}
-                  type="button"
-                >
-                  {Object.values(routeTypes).every(Boolean) ? 'Deselect All' : 'Select All'}
-                </button>
-              </div>
-              
-              {Object.keys(routeTypes).map(type => (
-                <label key={type} className="dropdown-item">
-                  <input 
-                    type="checkbox" 
-                    className="checkbox-input"
-                    value={type}
-                    checked={routeTypes[type]}
-                    onChange={() => handleRouteTypeChange(type)}
-                  />
-                  <span className="route-type-label">
-                    Route Type {type}
-                    <span className="route-type-color" style={{
-                      backgroundColor: {
-                        "0": "#a65628", "1": "#e41a1c", "2": "#377eb8", 
-                        "3": "#4daf4a", "4": "#984ea3", "5": "#ff7f00"
-                      }[type]
-                    }}></span>
-                  </span>
-                </label>
-              ))}
+    <div className="route-type-dropdown">
+        <button 
+        className="dropdown-toggle"
+        onClick={() => setIsRouteDropdownOpen(!isRouteDropdownOpen)}
+        type="button"
+        >
+        Route Types: {getSelectedRouteTypesText()}
+        <span className={`dropdown-arrow ${isRouteDropdownOpen ? 'open' : ''}`}>
+            ▼
+        </span>
+        </button>
+
+        {isRouteDropdownOpen && (
+        <div className="dropdown-menu">
+            <div className="dropdown-header">
+            <button 
+                className="select-all-btn"
+                onClick={toggleAllRouteTypes}
+                type="button"
+            >
+                {Object.values(routeTypes).every(Boolean) ? 'Deselect All' : 'Select All'}
+            </button>
             </div>
-          )}
+            
+            {Object.keys(routeTypes).map(type => (
+            <label key={type} className="dropdown-item">
+                <input 
+                type="checkbox" 
+                className="checkbox-input"
+                value={type}
+                checked={routeTypes[type]}
+                onChange={() => handleRouteTypeChange(type)}
+                />
+                <span className="route-type-label">
+                Route Type {type}
+                <span className="route-type-color" style={{
+                    backgroundColor: {
+                    "0": "#a65628", "1": "#e41a1c", "2": "#377eb8", 
+                    "3": "#4daf4a", "4": "#984ea3", "5": "#ff7f00"
+                    }[type]
+                }}></span>
+                </span>
+            </label>
+            ))}
         </div>
+        )}
+    </div>
 
-        <label className="control-label">
-          Search:
-          <input 
-            type="text" 
-            id="nameSearch"
-            value={nameSearch}
-            onChange={(e) => setNameSearch(e.target.value)}
-            placeholder="Name contains…"
-            className="control-input"
-          />
-        </label>
+    <label className="control-label">
+        Search:
+        <input 
+        type="text" 
+        id="nameSearch"
+        value={nameSearch}
+        onChange={(e) => setNameSearch(e.target.value)}
+        placeholder="Name contains…"
+        className="control-input"
+        />
+    </label>
 
-        <label className="control-label">
-          <input 
-            type="checkbox" 
-            id="toggleRoutes"
-            className="checkbox-input"
-            checked={showRoutes}
-            onChange={(e) => setShowRoutes(e.target.checked)}
-          />
-          Show Transit Lines
-        </label>
+    <label className="control-label">
+        <input 
+        type="checkbox" 
+        id="toggleRoutes"
+        className="checkbox-input"
+        checked={showRoutes}
+        onChange={(e) => setShowRoutes(e.target.checked)}
+        />
+        Show Transit Lines
+    </label>
 
-        <label className="control-label">
-          <input 
-            type="checkbox" 
-            id="toggleBottlenecks"
-            className="checkbox-input"
-            checked={showBottlenecks}
-            onChange={(e) => setShowBottlenecks(e.target.checked)}
-          />
-          Show Bottlenecks
-        </label>
+    <label className="control-label">
+        <input 
+        type="checkbox" 
+        id="toggleBottlenecks"
+        className="checkbox-input"
+        checked={showBottlenecks}
+        onChange={(e) => setShowBottlenecks(e.target.checked)}
+        />
+        Show Bottlenecks
+    </label>
 
-        <label className="control-label">
-          <input 
-            type="checkbox" 
-            id="toggleLowIncome"
-            className="checkbox-input"
-            checked={showLowIncome}
-            onChange={(e) => setShowLowIncome(e.target.checked)}
-          />
-          Show Low-Income Areas
-        </label>
-      </div>
+    <label className="control-label">
+        <input 
+        type="checkbox" 
+        id="toggleLowIncome"
+        className="checkbox-input"
+        checked={showLowIncome}
+        onChange={(e) => setShowLowIncome(e.target.checked)}
+        />
+        Show Low-Income Areas
+    </label>
+    </div>
+
 
       <div id="map" ref={mapRef} />
 
