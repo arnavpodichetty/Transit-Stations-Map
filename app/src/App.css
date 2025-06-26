@@ -1,87 +1,171 @@
-/* Global styles - moved from index.css */
+/* Global styles */
 html, body, #root {
   height: 100%;
   margin: 0;
   padding: 0;
-  overflow: hidden;
-  font-family: Arial, Helvetica, sans-serif;
+  overflow: hidden; /* Prevent scrolling */
+  font-family: 'Arial', 'Helvetica', sans-serif;
+  background-color: #fafafa; /* Soft, neutral background */
 }
 
 .App {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100vh; /* Full viewport height */
 }
 
 #map {
-  flex-grow: 1;
+  flex-grow: 1; /* Ensure map takes available space */
   height: 100%;
   width: 100%;
-  background-color: #f0f0f0;
+  background-color: #f0f0f0; /* Light neutral background */
+  border-radius: 8px; /* Slight rounded corners for a softer look */
+  height: 100vh;
 }
 
 #controls {
-  padding: 10px 20px;
-  background-color: #f8f8f8;
-  border-bottom: 1px solid #eee;
+  padding: 15px 25px;
+  background-color: #ffffff;
+  border-top: 1px solid #ddd;
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 15px;
   align-items: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1); /* Light shadow for separation */
 }
 
 #controls label {
-  margin-right: 15px;
+  margin-right: 12px;
+  font-size: 14px;
+  color: #333;
 }
 
-/* Header styling */
 .map-title {
-  margin: 10px 20px 0;
+  margin: 15px 25px 0;
+  font-size: 30px;
+  color: #4b9ce2; /* Soft blue for title */
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  text-shadow: 1px 1px 4px rgba(0,0,0,0.1); /* Subtle shadow */
 }
 
 /* Form inputs */
 select, input[type="text"] {
-  margin-right: 8px;
-  padding: 4px;
+  padding: 8px 12px;
+  font-size: 14px;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  width: 180px;
+  transition: all 0.3s ease;
+}
+
+select:focus, input[type="text"]:focus {
+  outline: none;
+  border-color: #4b9ce2; /* Focus color for input */
+  box-shadow: 0 0 8px rgba(75,156,226,0.3);
 }
 
 .control-input {
-  margin-left: 4px;
-  padding: 4px;
+  margin-left: 8px;
+  padding: 6px 12px;
 }
 
+/* Control labels and checkboxes */
 .control-label {
-  display: inline-block;
-  margin-right: 8px;
+  display: inline-flex;
+  align-items: center;
+  margin-right: 20px;
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
 }
 
 .checkbox-input {
-  margin-right: 4px;
+  margin-right: 6px;
+  width: 18px;
+  height: 18px;
+  accent-color: #4b9ce2; /* Use a matching color for the checkbox */
+  border-radius: 50%; /* Round checkboxes for a cuter look */
+  transition: all 0.3s ease; /* Smooth transition for hover effects */
 }
 
-/* Route type dropdown styling */
+.checkbox-input:checked {
+  background-color: #4b9ce2; /* Color when checked */
+}
+
+.checkbox-input:hover {
+  transform: scale(1.1); /* Slight grow effect on hover */
+}
+
+.checkbox-input:focus {
+  outline: none;
+  box-shadow: 0 0 5px rgba(75,156,226,0.3); /* Add a soft glow when focused */
+}
+
+/* Arrange checkboxes on the same line */
+#controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  padding: 15px 25px;
+  background-color: #ffffff;
+  border-top: 1px solid #ddd;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1); /* Light shadow for separation */
+}
+
+/* Make dropdown and checkboxes align on same line */
+.route-type-dropdown,
+.control-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .route-type-dropdown {
-  position: relative;
-  display: inline-block;
-  margin-right: 15px;
+  flex-grow: 1;
+}
+
+/* Update the map controls container to be on one line */
+#controls {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 15px;
+  padding: 15px 25px;
+  background-color: #ffffff;
+  border-top: 1px solid #ddd;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Ensure labels have space between them */
+.control-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
 }
 
 .dropdown-toggle {
-  background: white;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  padding: 6px 12px;
+  background: #ffffff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 8px 16px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-size: 14px;
-  min-width: 180px;
   justify-content: space-between;
 }
 
 .dropdown-toggle:hover {
-  background-color: #f5f5f5;
+  background-color: #f4f4f4; /* Soft hover effect */
 }
 
 .dropdown-arrow {
@@ -99,18 +183,20 @@ select, input[type="text"] {
   left: 0;
   right: 0;
   background: white;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   z-index: 1000;
   max-height: 300px;
   overflow-y: auto;
 }
 
 .dropdown-header {
-  padding: 8px 12px;
-  border-bottom: 1px solid #eee;
-  background-color: #f8f9fa;
+  padding: 10px 15px;
+  border-bottom: 1px solid #f0f0f0;
+  background-color: #f4f4f4;
+  font-weight: 600;
+  color: #555;
 }
 
 .select-all-btn {
@@ -129,13 +215,14 @@ select, input[type="text"] {
 .dropdown-item {
   display: flex;
   align-items: center;
-  padding: 8px 12px;
+  padding: 10px 15px;
   cursor: pointer;
   border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.3s ease;
 }
 
 .dropdown-item:hover {
-  background-color: #f8f9fa;
+  background-color: #f4f4f4;
 }
 
 .dropdown-item:last-child {
@@ -147,20 +234,22 @@ select, input[type="text"] {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  margin-left: 8px;
 }
 
 .route-type-color {
-  width: 16px;
-  height: 16px;
-  border-radius: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
   margin-left: 8px;
+  background-color: #4b9ce2; /* Matching route color */
 }
 
 /* Loading and error states */
 .loading-container {
   padding: 20px;
   text-align: center;
+  color: #888;
+  font-size: 16px;
 }
 
 .error-container {
@@ -171,31 +260,31 @@ select, input[type="text"] {
   padding: 20px;
   background-color: #ffebee;
   border: 1px solid #f44336;
-  border-radius: 4px;
+  border-radius: 6px;
   color: #d32f2f;
 }
 
 /* Legend positioning */
 #legend {
   position: fixed;
-  bottom: 10px;
-  right: 10px;
-  background: #fff;
-  padding: 8px 10px;
-  border-radius: 6px;
-  box-shadow: 0 1px 4px rgba(0,0,0,.3);
+  bottom: 20px;
+  right: 20px;
+  background: #ffffff;
+  padding: 12px 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   font-size: 14px;
   z-index: 1000;
 }
 
 #legend div {
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   display: flex;
   align-items: center;
 }
 
 #legend img {
-  width: 16px;
-  height: 16px;
-  margin-right: 4px;
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
 }
