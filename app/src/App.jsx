@@ -263,13 +263,11 @@ function TransitMap() {
         
         console.log("4. Map created successfully");
 
-        // Force a resize event to make sure map renders
         setTimeout(() => {
           console.log("5. Triggering map resize...");
           window.google.maps.event.trigger(googleMap.current, 'resize');
         }, 100);
 
-        // Load only routes initially
         if (showRoutes) {
           loadRoutesLayer();
         }
@@ -350,15 +348,12 @@ function TransitMap() {
   useEffect(() => {
     if (googleMap.current) {
       if (showBottlenecks) {
-        // If no bottleneck data loaded yet, load it
         if (bottleneckLines.current.length === 0) {
           drawBottlenecks();
         } else {
-          // Data already loaded, just show it
           bottleneckLines.current.forEach(line => line.setMap(googleMap.current));
         }
       } else {
-        // Hide all bottleneck lines
         bottleneckLines.current.forEach(line => line.setMap(null));
       }
     }
@@ -367,15 +362,12 @@ function TransitMap() {
   useEffect(() => {
     if (googleMap.current) {
       if (showLowIncome) {
-        // If no low income data loaded yet, load it
         if (lowIncomePolygons.current.length === 0) {
           drawLowIncomeAreas();
         } else {
-          // Data already loaded, just show it
           lowIncomePolygons.current.forEach(polygon => polygon.setMap(googleMap.current));
         }
       } else {
-        // Hide all low income polygons
         lowIncomePolygons.current.forEach(polygon => polygon.setMap(null));
       }
     }
