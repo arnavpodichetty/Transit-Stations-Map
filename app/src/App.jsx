@@ -33,7 +33,7 @@ function TransitMap() {
   const [showBottlenecks, setShowBottlenecks] = useState(false);
   const [showLowIncome, setShowLowIncome] = useState(false);
 
-  const MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+  const MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_ID;
 
   // Load Google Maps Script
   const loadGoogleMapsScript = () => {
