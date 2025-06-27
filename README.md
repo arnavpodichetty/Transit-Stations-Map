@@ -22,4 +22,4 @@ For route_type:
 Running app:
 - have npm or install
 - npm install
-- run with npm run dev
+- cd into the app and then npm run dev
