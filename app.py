@@ -10,11 +10,9 @@ from flask_cors import CORS  # Add this line to handle CORS
 load_dotenv()
 app = Flask(__name__, static_folder='my-map-app/dist', static_url_path='/')
 
-# Enable CORS for all routes
 CORS(app)
 
-# Path to your original station data JSON file (Flask will read this)
-STATION_JSON_PATH = "app/public/data/data.json"  # Assuming 'data' folder is next to app.py
+STATION_JSON_PATH = "app/public/data/data.json" 
 
 @app.route("/api/stations")
 def get_stations():
