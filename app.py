@@ -8,7 +8,7 @@ from flask_cors import CORS  # Add this line to handle CORS
 # CONFIGURATION
 # -------------------------------
 load_dotenv()
-app = Flask(__name__, static_folder='my-map-app/dist', static_url_path='/')
+app = Flask(__name__, static_folder='app/dist', static_url_path='/')
 
 CORS(app)
 
@@ -75,4 +75,4 @@ def serve_static_files(filename):
 if __name__ == "__main__":
     print(f"Serving React app from: {app.static_folder}")
     print(f"Looking for station data at: {STATION_JSON_PATH}")
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=5000, host='0.0.0.0')
