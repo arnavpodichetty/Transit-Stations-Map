@@ -109,7 +109,7 @@ def monitor_processes(flask_process, react_process):
     print("\n" + "="*60)
     print("🎉 Both servers are starting up!")
     print("📱 React dev server: http://localhost:5173")
-    print("🐍 Flask API server: http://localhost:5000")
+    print("🐍 Flask API server: http://localhost:5001")
     print("="*60)
     print("\n💡 Press Ctrl+C to stop both servers\n")
     
@@ -172,7 +172,7 @@ def main():
         
         print("\n" + "="*60)
         print("🎉 Production server is running!")
-        print("🌐 Application: http://localhost:5000")
+        print("🌐 Application: http://localhost:5001")
         print("="*60)
         print("\n💡 Press Ctrl+C to stop the server\n")
         
