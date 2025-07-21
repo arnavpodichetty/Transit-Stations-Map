@@ -3,11 +3,48 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Google Map</title>
-    <link rel="stylesheet" href="./style.css" />
+    <title>Transit Map</title>
+    <!-- Fix favicon 404 -->
+    <link rel="icon" href="data:,">
+    
+    <!-- Google Maps optimized loading -->
+    <script>
+      let mapInitAttempts = 0;
+      function initMap() {
+        console.log("Google Maps API fully loaded");
+      }
+      
+      function loadGoogleMaps() {
+        if (window.google) {
+          initMap();
+          return;
+        }
+        
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.VITE_GOOGLE_MAPS_API_KEY}&libraries=places&callback=initMap`;
+        script.async = true;
+        script.defer = true;
+        script.onerror = () => {
+          console.error("Google Maps failed to load");
+          if (mapInitAttempts++ < 3) {
+            setTimeout(loadGoogleMaps, 1000 * mapInitAttempts);
+          }
+        };
+        document.head.appendChild(script);
+      }
+      
+      // Load Google Maps after DOM is ready
+      document.addEventListener('DOMContentLoaded', loadGoogleMaps);
+    </script>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    
+    <!-- Buffer polyfill if needed -->
+    <script>
+      if (typeof Buffer === 'undefined') {
+        window.Buffer = require('buffer').Buffer;
+      }
+    </script>
   </body>
 </html>

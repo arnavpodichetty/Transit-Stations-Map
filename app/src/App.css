@@ -40,6 +40,30 @@ html, body, #root {
   color: #333;
 }
 
+#photo-capture-root {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10000;
+}
+
+#photo-capture-root > * {
+  pointer-events: auto;
+}
+
+/* Make sure no other elements obscure it */
+body {
+  position: relative;
+}
+
+/* If using Material-UI or other libraries */
+.MuiModal-root {
+  z-index: 9999 !important; /* Slightly below our upload button */
+}
+
 .map-title {
   margin: 15px 25px 0;
   font-size: 30px;

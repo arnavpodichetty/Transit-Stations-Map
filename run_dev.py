@@ -11,6 +11,7 @@ import signal
 import time
 from pathlib import Path
 
+
 def check_dependencies():
     """Check if required dependencies are available."""
     # Check if npm is available
@@ -73,7 +74,7 @@ def start_flask_server():
     
     try:
         flask_process = subprocess.Popen(
-            [sys.executable, 'app.py'],
+            [sys.executable, 'app.py', '--port', '5001'],
             env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,

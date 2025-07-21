@@ -1,9 +1,14 @@
 import os
+import numpy as np
 from flask import Flask, jsonify, request, send_from_directory
 from dotenv import load_dotenv
 import json
-from flask_cors import CORS  # Add this line to handle CORS
-import requests  # Add this for making HTTP requests to Gemini API
+from flask_cors import CORS
+import requests
+import torch
+import clip
+from PIL import Image
+import io
 
 # -------------------------------
 # CONFIGURATION
@@ -11,10 +16,70 @@ import requests  # Add this for making HTTP requests to Gemini API
 load_dotenv()
 app = Flask(__name__, static_folder='app/dist', static_url_path='/')
 
-CORS(app)
+CORS(app, resources={
+    r"/api/*": {
+        "origins": ["http://localhost:5173", "http://localhost:5001"],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"]
+    }
+})
 
 STATION_JSON_PATH = "app/public/data/data.json" 
 GEMINI_API_KEY = "AIzaSyD5I4gvumrOMtea6kUMh49zIO35A4EBYSM"
+
+UPLOAD_FOLDER = 'transit_images'
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+# CLIP Model Setup
+device = "cuda" if torch.cuda.is_available() else "cpu"
+model, preprocess = clip.load("ViT-B/32", device=device)
+
+class EmbeddingStore:
+    _instance = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(EmbeddingStore, cls).__new__(cls)
+            cls._instance.embeddings = np.zeros((0, 512))  # Initialize empty array
+            cls._instance.image_info = []  # Stores filenames
+        return cls._instance
+
+# Initialize the store
+embedding_store = EmbeddingStore()
+
+@app.route('/api/upload_transit_image', methods=['POST'])
+def upload_transit_image():
+    """Admin endpoint to upload transit images"""
+    if 'image' not in request.files:
+        return jsonify({"error": "No image provided"}), 400
+    
+    file = request.files['image']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+    
+    try:
+        # Save image
+        filename = f"transit_{len(embedding_store.image_info)}.jpg"
+        filepath = os.path.join(UPLOAD_FOLDER, filename)
+        file.save(filepath)
+        
+        # Generate and store embedding
+        image = preprocess(Image.open(filepath)).unsqueeze(0).to(device)
+        with torch.no_grad():
+            embedding = model.encode_image(image).cpu().numpy()
+        
+        # Update storage
+        embedding_store.embeddings = np.vstack([embedding_store.embeddings, embedding])
+        embedding_store.image_info.append({"filename": filename})
+        
+        return jsonify({
+            "status": "success",
+            "filename": filename,
+            "embedding_shape": embedding.shape
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 @app.route("/api/ai-chat", methods=['POST'])
 def ai_chat():
@@ -128,6 +193,58 @@ def serve_react_app():
 def serve_static_files(filename):
     """Serves static files like JS, CSS, images, and data from the React build."""
     return send_from_directory(app.static_folder, filename)
+
+@app.route("/api/match_photo", methods=["POST"])
+def match_photo():
+    try:
+        if 'photo' not in request.files:
+            return jsonify({"error": "No photo uploaded"}), 400
+        
+        # Secure filename handling
+        file = request.files['photo']
+        if file.filename == '':
+            return jsonify({"error": "Empty filename"}), 400
+        
+        try:
+            # Verify image before processing
+            image = Image.open(io.BytesIO(file.read()))
+            if image.format not in ('JPEG', 'PNG'):
+                return jsonify({"error": "Invalid image format"}), 400
+            
+            # Convert to RGB if needed
+            if image.mode != 'RGB':
+                image = image.convert('RGB')
+                
+            # Process image
+            image_tensor = preprocess(image).unsqueeze(0).to(device)
+            with torch.no_grad():
+                query_embedding = clip_model.encode_image(image_tensor).cpu().numpy()
+            
+            if not embeddings.size:
+                return jsonify({"error": "No reference images available"}), 404
+                
+            # Calculate similarities
+            query_embedding_norm = query_embedding / np.linalg.norm(query_embedding)
+            embeddings_norm = embeddings / np.linalg.norm(embeddings, axis=1, keepdims=True)
+            similarities = np.dot(embeddings_norm, query_embedding_norm.T).flatten()
+            
+            best_idx = np.argmax(similarities)
+            
+            return jsonify({
+                "matched_image": image_info[best_idx]["filename"],
+                "similarity_score": float(similarities[best_idx])
+            })
+            
+        except IOError:
+            return jsonify({"error": "Invalid image file"}), 400
+        except Exception as e:
+            print(f"Image processing error: {str(e)}")
+            return jsonify({"error": "Image processing failed"}), 500
+            
+    except Exception as e:
+        print(f"Server error: {str(e)}")
+        return jsonify({"error": "Server error"}), 500
+
 
 if __name__ == "__main__":
     print(f"Serving React app from: {app.static_folder}")
