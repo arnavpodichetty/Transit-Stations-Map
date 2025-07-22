@@ -230,7 +230,7 @@ function TransitMap() {
           polygon.set("info", {
             geoid: area.geoid,
             county: area.county,
-            tract: area.tract,
+            tract: area.name,
             poverty: area.poverty_pct,
             ci_score: area.ci_score
           });

@@ -25,12 +25,12 @@ A web app to explore California transit data with routes, stations, bottlenecks,
   `cd app && npm run dev`
 - Visit: [http://localhost:5173](http://localhost:5173)
 
-**Production (static build):**
+**Production:**
 - Build React:  
-  `cd app && npm run build`
+  `cd app && npm run dev`
 - Start Flask:  
   `python app.py`
-- Visit: [http://localhost:5001](http://localhost:5001)
+- Visit: [http://localhost:5173](http://localhost:5173)
 
 ## Data Files
 Place these in `app/public/data/`:
