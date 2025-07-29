@@ -826,15 +826,28 @@ function TransitMap() {
       <div id="map" ref={mapRef} />
 
       {suggestedRoutesText && (
-        <div className="suggested-routes-box fixed-card">
-          <h4>AI-Suggested Routes</h4>
-          <div className="suggested-routes-scroll">
-            <pre>
-              {suggestedRoutesText}
-            </pre>
-          </div>
-        </div>
-      )}
+  <div className="suggested-routes-box">
+    <h4>AI-Suggested Routes</h4>
+    
+    {aiSuggestedRoutes.length > 0 ? (
+          <ul className="routes-list">
+            {aiSuggestedRoutes.map((route, idx) => (
+              <li key={idx} className="route-item">
+                <div className="route-name">{route.name}</div>
+                <div className="route-summary">{route.summary}</div>
+                <div className="route-coords">
+                  <span><strong>Start:</strong> {route.start.join(', ')}</span><br />
+                  <span><strong>End:</strong> {route.end.join(', ')}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="raw-text">{suggestedRoutesText}</div>
+        )}
+      </div>
+    )}
+
 
     </div>
   );

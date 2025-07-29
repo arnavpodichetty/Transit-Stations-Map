@@ -481,6 +481,19 @@ select:focus, input[type="text"]:focus {
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
+.suggest-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 25px;
+  padding: 12px 20px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  min-width: 70px;
+}
+
 .chat-input:disabled {
   background-color: #f5f5f5;
   cursor: not-allowed;
@@ -533,11 +546,67 @@ select:focus, input[type="text"]:focus {
   font-size: 16px;
 }
 
-.suggested-routes-scroll {
-  padding: 12px 16px;
+.suggested-routes-box {
+  position: absolute;
+  top: 150px;
+  right: 20px;
+  width: 360px;
+  max-height: 70vh;
   overflow-y: auto;
-  flex-grow: 1;
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid #ddd;
+  font-family: 'Segoe UI', sans-serif;
+  z-index: 10;
+}
+
+.suggested-routes-box h4 {
+  margin-bottom: 12px;
+  font-size: 1.2rem;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.routes-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.route-item {
+  margin-bottom: 16px;
+  padding: 12px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+}
+
+.route-name {
+  font-weight: bold;
+  font-size: 1.1rem;
+  margin-bottom: 4px;
+}
+
+.route-summary {
+  font-style: italic;
+  color: #555;
+  margin-bottom: 6px;
+}
+
+.route-coords {
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.raw-text {
   white-space: pre-wrap;
+  font-family: monospace;
+  font-size: 0.9rem;
+  color: #444;
 }
 
 /* Responsive design for chat */
