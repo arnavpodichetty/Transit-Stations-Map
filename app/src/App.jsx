@@ -525,7 +525,7 @@ function TransitMap() {
     }
   }, [showLowIncome]);
 
-  useEffect(() => {
+ useEffect(() => {
     if (!googleMap.current) return;
 
     // Clear any existing markers
@@ -535,19 +535,38 @@ function TransitMap() {
     if (aiSuggestedRoutes.length === 0) return;
 
     aiSuggestedRoutes.forEach(route => {
-      if (!route.start || route.start.length !== 2) return;
+      if (!route.start || route.start.length !== 2 || !route.end || route.end.length !== 2) return;
+
       console.log("Rendering AI Suggested Routes:", aiSuggestedRoutes);
-      const marker = new window.google.maps.Marker({
+
+      const markerStart = new window.google.maps.Marker({
         position: {
           lat: route.start[0],
           lng: route.start[1]
         },
         map: googleMap.current,
-        title: route.name || "AI Suggested Route",
+        title: route.name || "AI Suggested Route Start",
         icon: {
           path: window.google.maps.SymbolPath.CIRCLE,
-          scale: 10,
-          fillColor: "#0000ff",
+          scale: 5,
+          fillColor: "#1e88e5",
+          fillOpacity: 1,
+          strokeColor: "#ffffff",
+          strokeWeight: 2
+        }
+      });
+
+      const markerEnd = new window.google.maps.Marker({
+        position: {
+          lat: route.end[0],
+          lng: route.end[1]
+        },
+        map: googleMap.current,
+        title: route.name || "AI Suggested Route End",
+        icon: {
+          path: window.google.maps.SymbolPath.CIRCLE,
+          scale: 5,
+          fillColor: "#bc2788ff",
           fillOpacity: 1,
           strokeColor: "#ffffff",
           strokeWeight: 2
@@ -558,13 +577,19 @@ function TransitMap() {
         content: `<b>${route.name}</b><br>${route.summary}`
       });
 
-      marker.addListener("click", () => {
-        infoWindow.open(googleMap.current, marker);
+      markerStart.addListener("click", () => {
+        infoWindow.open(googleMap.current, markerStart);
       });
 
-      aiStartMarkers.current.push(marker);
+      markerEnd.addListener("click", () => {
+        infoWindow.open(googleMap.current, markerEnd);
+      });
+
+      aiStartMarkers.current.push(markerStart);
+      aiStartMarkers.current.push(markerEnd);
     });
   }, [aiSuggestedRoutes]);
+
 
 
   useEffect(() => {

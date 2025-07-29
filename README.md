@@ -13,6 +13,8 @@ A web app to explore California transit data with routes, stations, bottlenecks,
    ```
    VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key
    VITE_GOOGLE_MAPS_ID=your_map_id
+   GEMINI_API_KEY=....
+   ask me for it....
    ```
 3. **Add data files** to `app/public/data/` (see below).
 
