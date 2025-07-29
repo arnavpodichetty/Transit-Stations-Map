@@ -38,8 +38,16 @@ function TransitMap() {
   const [userInput, setUserInput] = useState('');
   const [isLoadingResponse, setIsLoadingResponse] = useState(false);
 
+  const [suggestedRoutesText, setSuggestedRoutesText] = useState('');
+  const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false);
+  const [aiSuggestedRoutes, setAiSuggestedRoutes] = useState([]);
+  const aiRouteLines = useRef([]);
+  const aiStartMarkers = useRef([]);
+
+
+
   const MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_ID;
-  const GEMINI_API_KEY = 'AIzaSyD5I4gvumrOMtea6kUMh49zIO35A4EBYSM';
+  const GEMINI_API_KEY = import.meta.env.GEMINI_API_KEY;
 
   // Load Google Maps Script
   const loadGoogleMapsScript = () => {
@@ -403,6 +411,55 @@ function TransitMap() {
     }
   };
 
+  const fetchSuggestedRoutes = async () => {
+    setIsLoadingSuggestion(true);
+    setSuggestedRoutesText("Fetching suggested routes...");
+
+
+    try {
+      const response = await fetch('/api/suggest-routes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          mapContext: {
+            showRoutes: true,
+            showBottlenecks: true,
+            showLowIncome: true
+          }
+        })
+      });
+
+      const contentType = response.headers.get('content-type');
+
+      if (contentType && contentType.includes('application/json')) {
+        const data = await response.json();
+        setSuggestedRoutesText(data.suggestions || "No suggestions returned.");
+
+        try {
+          // 🧽 Clean AI response of markdown ticks (```json ... ```)
+          const cleaned = data.suggestions
+            .replace(/```json/g, '')
+            .replace(/```/g, '')
+            .trim();
+
+          const routeJson = JSON.parse(cleaned);
+          setAiSuggestedRoutes(routeJson);
+        } catch (e) {
+          console.warn("Failed to parse AI route JSON:", e);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching suggestions:", error);
+      setSuggestedRoutesText("❌ Error fetching suggestions: " + error.message);
+    } finally {
+      setIsLoadingSuggestion(false);
+    }
+  };
+
+
+
   // Effects
   useEffect(() => {
     loadGoogleMapsScript();
@@ -467,6 +524,89 @@ function TransitMap() {
       }
     }
   }, [showLowIncome]);
+
+  useEffect(() => {
+    if (!googleMap.current) return;
+
+    // Clear any existing markers
+    aiStartMarkers.current.forEach(m => m.setMap(null));
+    aiStartMarkers.current = [];
+
+    if (aiSuggestedRoutes.length === 0) return;
+
+    aiSuggestedRoutes.forEach(route => {
+      if (!route.start || route.start.length !== 2) return;
+      console.log("Rendering AI Suggested Routes:", aiSuggestedRoutes);
+      const marker = new window.google.maps.Marker({
+        position: {
+          lat: route.start[0],
+          lng: route.start[1]
+        },
+        map: googleMap.current,
+        title: route.name || "AI Suggested Route",
+        icon: {
+          path: window.google.maps.SymbolPath.CIRCLE,
+          scale: 10,
+          fillColor: "#0000ff",
+          fillOpacity: 1,
+          strokeColor: "#ffffff",
+          strokeWeight: 2
+        }
+      });
+
+      const infoWindow = new window.google.maps.InfoWindow({
+        content: `<b>${route.name}</b><br>${route.summary}`
+      });
+
+      marker.addListener("click", () => {
+        infoWindow.open(googleMap.current, marker);
+      });
+
+      aiStartMarkers.current.push(marker);
+    });
+  }, [aiSuggestedRoutes]);
+
+
+  useEffect(() => {
+    if (!googleMap.current) return;
+
+    // Clear existing AI lines first
+    aiRouteLines.current.forEach(p => p.setMap(null));
+    aiRouteLines.current = [];
+
+    if (aiSuggestedRoutes.length === 0) return;
+
+    aiSuggestedRoutes.forEach(route => {
+      const path = [
+        { lat: route.start[0], lng: route.start[1] },
+        { lat: route.end[0], lng: route.end[1] }
+      ];
+
+      const polyline = new window.google.maps.Polyline({
+        path,
+        map: googleMap.current,
+        strokeColor: "#0000ff",
+        strokeOpacity: 0.9,
+        strokeWeight: 3
+      });
+
+      polyline.set("info", {
+        name: route.name,
+        summary: route.summary
+      });
+
+      polyline.addListener("click", (e) => {
+        const info = polyline.get("info");
+        new window.google.maps.InfoWindow({
+          content: `<b>${info.name}</b><br>${info.summary}`,
+          position: e.latLng
+        }).open(googleMap.current);
+      });
+
+      aiRouteLines.current.push(polyline);
+    });
+  }, [aiSuggestedRoutes]);
+
 
   if (loading) {
     return (
@@ -610,6 +750,16 @@ function TransitMap() {
         >
           {isChatOpen ? '✕' : '🤖'} AI Assistant
         </button>
+
+        <button 
+          className="suggest-button"
+          onClick={fetchSuggestedRoutes}
+          type="button"
+          disabled={isLoadingSuggestion}
+        >
+          {isLoadingSuggestion ? 'Loading...' : 'Suggest New Routes'}
+        </button>
+
       </div>
 
       {/* AI Chat Interface */}
@@ -674,6 +824,18 @@ function TransitMap() {
       )}
 
       <div id="map" ref={mapRef} />
+
+      {suggestedRoutesText && (
+        <div className="suggested-routes-box fixed-card">
+          <h4>AI-Suggested Routes</h4>
+          <div className="suggested-routes-scroll">
+            <pre>
+              {suggestedRoutesText}
+            </pre>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
