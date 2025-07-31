@@ -32,12 +32,6 @@ function TransitMap() {
   const [showBottlenecks, setShowBottlenecks] = useState(false);
   const [showLowIncome, setShowLowIncome] = useState(false);
 
-  // AI Chat state
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [chatMessages, setChatMessages] = useState([]);
-  const [userInput, setUserInput] = useState('');
-  const [isLoadingResponse, setIsLoadingResponse] = useState(false);
-
   const [suggestedRoutesText, setSuggestedRoutesText] = useState('');
   const [isLoadingSuggestion, setIsLoadingSuggestion] = useState(false);
   const [aiSuggestedRoutes, setAiSuggestedRoutes] = useState([]);
@@ -328,87 +322,6 @@ function TransitMap() {
       newState[key] = !allSelected;
     });
     setRouteTypes(newState);
-  };
-
-  // AI Chat Functions
-  const sendMessageToAI = async (message) => {
-    if (!message.trim()) return;
-
-    const newMessage = {
-      id: Date.now(),
-      text: message,
-      sender: 'user',
-      timestamp: new Date().toLocaleTimeString()
-    };
-
-    setChatMessages(prev => [...prev, newMessage]);
-    setUserInput('');
-    setIsLoadingResponse(true);
-
-    try {
-      // Use the backend proxy instead of calling Gemini directly
-      const response = await fetch('/api/ai-chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: message,
-          mapContext: {
-            showRoutes: showRoutes,
-            showBottlenecks: showBottlenecks,
-            showLowIncome: showLowIncome,
-            activeRouteTypes: Object.keys(routeTypes).filter(key => routeTypes[key]).join(', ')
-          }
-        })
-      });
-
-      const data = await response.json();
-      
-      if (data.response) {
-        const aiMessage = {
-          id: Date.now() + 1,
-          text: data.response,
-          sender: 'ai',
-          timestamp: new Date().toLocaleTimeString()
-        };
-        setChatMessages(prev => [...prev, aiMessage]);
-      } else if (data.error) {
-        throw new Error(data.error);
-      } else {
-        throw new Error('Invalid response from AI');
-      }
-    } catch (error) {
-      console.error('Error calling AI service:', error);
-      const errorMessage = {
-        id: Date.now() + 1,
-        text: `Sorry, I'm having trouble connecting to the AI service right now. ${error.message}`,
-        sender: 'ai',
-        timestamp: new Date().toLocaleTimeString()
-      };
-      setChatMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoadingResponse(false);
-    }
-  };
-
-  const handleChatSubmit = (e) => {
-    e.preventDefault();
-    sendMessageToAI(userInput);
-  };
-
-  const toggleChat = () => {
-    setIsChatOpen(!isChatOpen);
-    if (!isChatOpen && chatMessages.length === 0) {
-      // Add welcome message when opening chat for the first time
-      const welcomeMessage = {
-        id: Date.now(),
-        text: "Hello! I'm your AI assistant for the transit map. You can ask me questions about the routes, bottlenecks, low-income areas, or any transit-related information. How can I help you today?",
-        sender: 'ai',
-        timestamp: new Date().toLocaleTimeString()
-      };
-      setChatMessages([welcomeMessage]);
-    }
   };
 
   const fetchSuggestedRoutes = async () => {
@@ -769,14 +682,6 @@ function TransitMap() {
         </label>
 
         <button 
-          className="ai-chat-toggle"
-          onClick={toggleChat}
-          type="button"
-        >
-          {isChatOpen ? '✕' : '🤖'} AI Assistant
-        </button>
-
-        <button 
           className="suggest-button"
           onClick={fetchSuggestedRoutes}
           type="button"
@@ -787,67 +692,7 @@ function TransitMap() {
 
       </div>
 
-      {/* AI Chat Interface */}
-      {isChatOpen && (
-        <div className="ai-chat-container">
-          <div className="chat-header">
-            <h4>AI Transit Assistant</h4>
-            <button 
-              className="close-chat-btn"
-              onClick={toggleChat}
-              type="button"
-            >
-              ✕
-            </button>
-          </div>
-          
-          <div className="chat-messages">
-            {chatMessages.map((message) => (
-              <div 
-                key={message.id} 
-                className={`chat-message ${message.sender === 'user' ? 'user-message' : 'ai-message'}`}
-              >
-                <div className="message-content">
-                  {message.text}
-                </div>
-                <div className="message-timestamp">
-                  {message.timestamp}
-                </div>
-              </div>
-            ))}
-            {isLoadingResponse && (
-              <div className="chat-message ai-message">
-                <div className="message-content">
-                  <div className="typing-indicator">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-          
-          <form onSubmit={handleChatSubmit} className="chat-input-form">
-            <input
-              type="text"
-              value={userInput}
-              onChange={(e) => setUserInput(e.target.value)}
-              placeholder="Ask about the transit map..."
-              className="chat-input"
-              disabled={isLoadingResponse}
-            />
-            <button 
-              type="submit" 
-              className="send-button"
-              disabled={isLoadingResponse || !userInput.trim()}
-            >
-              Send
-            </button>
-          </form>
-        </div>
-      )}
-
+      
       <div id="map" ref={mapRef} />
 
       {suggestedRoutesText && (

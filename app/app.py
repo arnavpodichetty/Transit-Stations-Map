@@ -64,61 +64,6 @@ Provide 2-3 new suggestions. For each write it in a json format as below. Keep s
 
 app.register_blueprint(routes_bp, url_prefix='/api')
 
-@app.route("/api/ai-chat", methods=['POST'])
-def ai_chat():
-    """
-    Proxy endpoint for Gemini AI chat to avoid CORS issues.
-    """
-    try:
-        data = request.get_json()
-        user_message = data.get('message', '')
-        map_context = data.get('mapContext', {})
-        
-        if not user_message:
-            return jsonify({"error": "No message provided"}), 400
-        
-        # Prepare the prompt with map context
-        prompt = f"""You are an AI assistant for a transit stations map. The map shows:
-- Transit routes with different types (0-5) in different colors
-- Bottlenecks in the transit system
-- Low-income areas
-
-Current map state:
-- Routes visible: {map_context.get('showRoutes', False)}
-- Bottlenecks visible: {map_context.get('showBottlenecks', False)}
-- Low-income areas visible: {map_context.get('showLowIncome', False)}
-- Active route types: {map_context.get('activeRouteTypes', '')}
-
-User question: {user_message}
-
-Please provide helpful, informative answers about the transit map, routes, bottlenecks, low-income areas, or general transit information. Keep responses concise and relevant to the map data."""
-
-        # Make request to Gemini API
-        gemini_url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-pro-002:generateContent?key={GEMINI_API_KEY}"
-        
-        response = requests.post(gemini_url, json={
-            "contents": [{
-                "parts": [{"text": prompt}]
-            }]
-        }, timeout=30)
-        
-        if response.status_code == 200:
-            data = response.json()
-            if data.get('candidates') and data['candidates'][0].get('content'):
-                ai_response = data['candidates'][0]['content']['parts'][0]['text']
-                return jsonify({"response": ai_response})
-            else:
-                return jsonify({"error": "Invalid response from Gemini API"}), 500
-        else:
-            return jsonify({"error": f"Gemini API error: {response.status_code}"}), response.status_code
-            
-    except requests.exceptions.Timeout:
-        return jsonify({"error": "Request timeout"}), 408
-    except requests.exceptions.RequestException as e:
-        return jsonify({"error": f"Request error: {str(e)}"}), 500
-    except Exception as e:
-        return jsonify({"error": f"Server error: {str(e)}"}), 500
-
 @app.route("/api/stations")
 def get_stations():
     """
